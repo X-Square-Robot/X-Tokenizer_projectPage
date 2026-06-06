@@ -3,13 +3,6 @@
 rebuild_single_html.py
 merge_single_html.py
 assets/charts/
-assets/videos/*_alt.mp4
-assets/videos/insert_flower_short.mp4
-assets/videos/insert_flower_rollout2.mp4
-assets/videos/pick_up_cup.mp4
-assets/videos/place_tape.mp4
-assets/videos/push_towel.mp4
-assets/videos/distribute_block_alt.mp4
 assets/figures/mainfig.png
 assets/figures/code_visual_full.png
 assets/figures/fig_vlm_decode.png
