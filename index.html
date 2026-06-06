@@ -1,0 +1,2643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>X-Tokenizer · A Multimodal Action Tokenizer for VLA Pretraining</title>
+<meta name="description" content="X-Tokenizer is a multimodal action tokenizer that doubles as a semantic interface between vision-language reasoning and continuous robot control.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --ink-950:#06070a;
+  --ink-900:#0b0d12;
+  --ink-800:#111418;
+  --ink-700:#1f242d;
+  --ink-600:#374151;
+  --ink-500:#475569;
+  --ink-400:#64748b;
+  --ink-300:#94a3b8;
+  --paper-50:#fafafa;
+  --paper-100:#f5f5f7;
+  --paper-150:#eeeef1;
+  --paper-200:#e4e4e7;
+  --paper-300:#d4d4d8;
+  --accent-50:#eef4ff;
+  --accent-100:#dfe9ff;
+  --accent-200:#bfd2ff;
+  --accent-500:#3b66f5;
+  --accent-600:#2c52d8;
+  --accent-700:#1e40af;
+  --accent-800:#1e3a8a;
+  --mint-500:#10b981;
+  --mint-600:#059669;
+  --rose-500:#f43f5e;
+  --violet-500:#8b5cf6;
+  --max-w: 1180px;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  margin:0; padding:0;
+  background:#ffffff;
+  color:var(--ink-900);
+  font-family:'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  font-feature-settings:"ss01","cv11";
+  line-height:1.55;
+}
+
+/* ============== Nav ============== */
+.nav{
+  position:sticky; top:0; z-index:50;
+  background:rgba(255,255,255,.78);
+  backdrop-filter:saturate(180%) blur(14px);
+  -webkit-backdrop-filter:saturate(180%) blur(14px);
+  border-bottom:1px solid var(--paper-200);
+}
+.nav-inner{
+  max-width:var(--max-w);
+  margin:0 auto;
+  padding:14px 28px;
+  display:flex; align-items:center; gap:24px;
+}
+.nav .brand{
+  display:flex; align-items:center; gap:10px;
+  font-weight:700; letter-spacing:-.01em; font-size:15px;
+  color:var(--ink-950);
+}
+.nav .brand .dot{width:8px;height:8px;background:var(--accent-700);border-radius:2px}
+.nav .links{margin-left:auto; display:flex; gap:22px; font-size:13px; font-weight:500}
+.nav .links a{
+  color:var(--ink-500); text-decoration:none; transition:color .15s ease;
+}
+.nav .links a:hover{color:var(--ink-950)}
+.nav .links a.cta{
+  color:#fff; background:var(--ink-950);
+  padding:7px 14px; border-radius:9999px;
+  font-weight:600;
+}
+.nav .links a.cta:hover{background:var(--accent-700)}
+@media (max-width:740px){
+  .nav .links a:not(.cta){display:none}
+}
+
+/* ============== Hero ============== */
+.hero{
+  position:relative;
+  padding:96px 28px 56px;
+  text-align:center;
+  background:
+    radial-gradient(ellipse 1100px 600px at 50% -10%, #eef4ff 0%, rgba(255,255,255,0) 60%),
+    #fff;
+  overflow:hidden;
+}
+.hero-inner{max-width:var(--max-w); margin:0 auto}
+.hero .eyebrow{
+  font-size:12px; letter-spacing:.18em; font-weight:700;
+  color:var(--accent-700); text-transform:uppercase;
+  margin:0 0 22px;
+}
+.hero h1{
+  font-family:'Newsreader', serif;
+  font-weight:600;
+  font-size:clamp(48px, 7.2vw, 104px);
+  line-height:1.02; letter-spacing:-.028em;
+  margin:0 0 18px;
+  color:var(--ink-950);
+}
+.hero h1 .accent{color:var(--accent-700)}
+.hero .tagline{
+  font-family:'Newsreader', serif;
+  font-size:clamp(20px, 2.2vw, 28px);
+  font-weight:400; color:var(--ink-700);
+  max-width:880px; margin:0 auto 14px;
+  line-height:1.4; letter-spacing:-.005em;
+}
+.hero .tagline b{color:var(--ink-950); font-weight:600}
+.hero .sub{
+  font-size:16px; color:var(--ink-500); font-weight:400;
+  max-width:780px; margin:18px auto 0;
+}
+
+/* Authors */
+.authors{
+  max-width:920px; margin:42px auto 0;
+  font-size:15px; color:var(--ink-700); font-weight:500;
+  line-height:1.85; letter-spacing:-.005em;
+}
+.authors .auth{display:inline-block; margin:0 4px}
+.authors .auth sup{
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px; font-weight:600;
+  color:var(--accent-700);
+  margin-left:1px;
+}
+.affil{
+  max-width:920px; margin:14px auto 0;
+  font-size:13px; color:var(--ink-500); font-weight:500;
+  letter-spacing:.005em;
+}
+.affil span{display:inline-block; margin:0 10px}
+.affil span sup{
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px; font-weight:600;
+  color:var(--accent-700);
+  margin-right:3px;
+}
+.affil .key{
+  display:block; margin-top:8px;
+  font-size:11.5px; color:var(--ink-400); letter-spacing:.01em;
+}
+
+/* CTA buttons */
+.cta-row{
+  display:flex; justify-content:center; flex-wrap:wrap; gap:10px;
+  margin-top:38px;
+}
+.btn{
+  display:inline-flex; align-items:center; gap:10px;
+  padding:11px 20px;
+  border-radius:9999px;
+  font-size:14px; font-weight:600;
+  text-decoration:none;
+  transition:transform .15s ease, background .15s ease, color .15s ease, box-shadow .15s ease;
+  border:1px solid transparent;
+  letter-spacing:-.005em;
+}
+.btn.primary{
+  background:var(--ink-950); color:#fff;
+}
+.btn.primary:hover{background:var(--accent-700); transform:translateY(-1px)}
+.btn.ghost{
+  background:#fff; color:var(--ink-900);
+  border-color:var(--paper-300);
+}
+.btn.ghost:hover{border-color:var(--ink-700); transform:translateY(-1px)}
+.btn .ic{
+  width:14px; height:14px; display:inline-flex; align-items:center; justify-content:center;
+}
+
+/* Hero stagger animation */
+.hero .eyebrow, .hero h1, .hero .tagline, .hero .sub, .hero .authors, .hero .affil, .hero .cta-row{
+  opacity:0; transform:translateY(14px);
+  animation:rise .85s cubic-bezier(.2,.6,.2,1) forwards;
+}
+.hero .eyebrow{animation-delay:.05s}
+.hero h1{animation-delay:.18s}
+.hero .tagline{animation-delay:.30s}
+.hero .sub{animation-delay:.42s}
+.hero .authors{animation-delay:.54s}
+.hero .affil{animation-delay:.62s}
+.hero .cta-row{animation-delay:.74s}
+@keyframes rise{to{opacity:1; transform:translateY(0)}}
+
+/* ============== Stat strip ============== */
+.stat-strip{
+  max-width:var(--max-w);
+  margin:36px auto 0;
+  padding:0 28px;
+}
+.stat-grid{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:0;
+  border:1px solid var(--paper-200);
+  border-radius:18px;
+  overflow:hidden;
+  background:#fff;
+  box-shadow:0 1px 0 rgba(15,23,42,.02);
+}
+.stat-grid .stat{
+  padding:24px 22px;
+  display:flex; flex-direction:column; gap:6px;
+  border-right:1px solid var(--paper-200);
+}
+.stat-grid .stat:last-child{border-right:0}
+.stat .num{
+  font-family:'Newsreader', serif;
+  font-size:34px; font-weight:600;
+  letter-spacing:-.018em;
+  color:var(--ink-950);
+  font-variant-numeric:tabular-nums;
+}
+.stat .num .unit{font-size:18px; color:var(--ink-500); margin-left:3px; font-weight:500}
+.stat .lbl{
+  font-size:12px; color:var(--ink-500); font-weight:500;
+  letter-spacing:.04em; text-transform:uppercase;
+}
+@media (max-width:780px){
+  .stat-grid{grid-template-columns:1fr}
+  .stat-grid .stat{
+    border-right:0;
+    border-bottom:1px solid var(--paper-200);
+  }
+  .stat-grid .stat:last-child{border-bottom:0}
+}
+
+/* ============== Generic section ============== */
+section.block{
+  max-width:var(--max-w);
+  margin:0 auto;
+  padding:96px 28px;
+}
+.block .eyebrow{
+  font-size:11.5px; letter-spacing:.18em; font-weight:700;
+  color:var(--accent-700); text-transform:uppercase;
+  margin:0 0 14px;
+}
+.block h2{
+  font-family:'Newsreader', serif;
+  font-weight:600;
+  font-size:clamp(34px, 4.4vw, 56px);
+  line-height:1.08; letter-spacing:-.022em;
+  margin:0 0 18px; color:var(--ink-950);
+}
+.block h2 .accent{color:var(--accent-700)}
+.block .lede{
+  font-family:'Newsreader', serif;
+  font-size:clamp(18px, 1.8vw, 22px);
+  color:var(--ink-600); font-weight:400;
+  max-width:780px; line-height:1.55; letter-spacing:-.005em;
+}
+.block .lede b{color:var(--ink-950); font-weight:600}
+
+/* ============== Reveal-on-scroll ============== */
+.reveal{opacity:0; transform:translateY(18px); transition:opacity .9s cubic-bezier(.2,.6,.2,1), transform .9s cubic-bezier(.2,.6,.2,1)}
+.reveal.in{opacity:1; transform:translateY(0)}
+.reveal.delay-1{transition-delay:.10s}
+.reveal.delay-2{transition-delay:.20s}
+.reveal.delay-3{transition-delay:.30s}
+.reveal.delay-4{transition-delay:.40s}
+
+/* ============== Abstract block ============== */
+.abstract-wrap{
+  display:grid;
+  grid-template-columns: 200px 1fr;
+  gap:48px;
+  align-items:start;
+}
+.abstract-wrap .side{
+  font-size:11.5px; letter-spacing:.18em;
+  font-weight:700; text-transform:uppercase;
+  color:var(--accent-700);
+  position:sticky; top:96px;
+}
+.abstract-wrap .body{
+  font-size:17px; color:var(--ink-700); font-weight:400;
+  line-height:1.7;
+}
+.abstract-wrap .body p{margin:0 0 18px}
+.abstract-wrap .body p:last-child{margin-bottom:0}
+.abstract-wrap .body b{color:var(--ink-950); font-weight:600}
+.abstract-wrap .body .pill{
+  display:inline-block; padding:2px 9px;
+  background:var(--accent-50); color:var(--accent-700);
+  border:1px solid var(--accent-100);
+  border-radius:9999px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px; font-weight:600;
+  letter-spacing:.01em;
+}
+@media (max-width:780px){
+  .abstract-wrap{grid-template-columns:1fr; gap:18px}
+  .abstract-wrap .side{position:static}
+}
+
+/* ============== Method ============== */
+.method-wrap{
+  margin-top:46px;
+  border:1px solid var(--paper-200);
+  border-radius:20px;
+  overflow:hidden;
+  background:#fff;
+  box-shadow:0 4px 30px rgba(15,23,42,.04);
+}
+
+/* ============== Method animation (embedded) ============== */
+.method-embed{position:absolute;inset:0;width:100%;height:100%;background:#fff;overflow:hidden}
+.method-embed .ma-stage-wrap{width:100%;height:100%;background:#fff}
+.method-embed .ma-stage{position:relative;width:100%;height:100%;background:#fff;overflow:hidden}
+.method-embed .ma-title-band{position:absolute;top:0;left:0;right:0;padding:14px 28px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--paper-200);background:#fff;z-index:5}
+.method-embed .ma-title-band .logo{display:flex;align-items:center;gap:8px;font-weight:600;letter-spacing:-.01em}
+.method-embed .ma-title-band .logo .dot{width:8px;height:8px;background:var(--accent-700);border-radius:2px}
+.method-embed .ma-title-band .stage-name{font-family:'Newsreader',serif;font-size:18px;color:var(--ink-700)}
+.method-embed .ma-title-band .stage-name b{color:var(--ink-950)}
+.method-embed .ma-diagram{position:absolute;inset:48px 0 56px;width:100%}
+.method-embed .ma-diagram svg{width:100%;height:100%;display:block}
+.method-embed .ma-footer-band{position:absolute;bottom:0;left:0;right:0;padding:10px 28px;border-top:1px solid var(--paper-200);background:#fff;display:flex;align-items:center;gap:16px;font-size:12px;color:var(--ink-500);z-index:5}
+.method-embed .ma-footer-band .step-pill{padding:4px 10px;border-radius:9999px;background:var(--ink-950);color:#fff;font-weight:500;letter-spacing:.04em;font-size:11px}
+.method-embed .ma-footer-band .caption{flex:1;color:var(--ink-700);font-size:13px}
+.method-embed .ma-footer-band .progress{flex:1;height:3px;background:var(--paper-200);border-radius:9999px;overflow:hidden;max-width:280px}
+.method-embed .ma-footer-band .progress>span{display:block;height:100%;width:0%;background:linear-gradient(to right,var(--accent-700),var(--accent-500));transition:width .15s linear}
+.method-embed .ma-chrome{display:none!important}
+.method-embed text{font-family:'Inter',sans-serif;fill:var(--ink-900)}
+.method-embed .label{font-size:12px;fill:var(--ink-500);font-weight:500;text-transform:uppercase;letter-spacing:.08em}
+.method-embed .label-title{font-size:13px;fill:var(--ink-950);font-weight:600;font-family:'Newsreader',serif}
+.method-embed .mono{font-family:'JetBrains Mono',monospace;font-size:11px;fill:var(--ink-700)}
+.method-embed .ent{opacity:0;transform:translateY(8px);transform-box:fill-box;transform-origin:center;transition:opacity .55s cubic-bezier(.2,.6,.2,1),transform .55s cubic-bezier(.2,.6,.2,1)}
+.method-embed .on>.ent,.method-embed .ent.on{opacity:1;transform:translateY(0)}
+.method-embed .box{fill:#fff;stroke:var(--paper-200);stroke-width:1.4}
+.method-embed .box-input{fill:#fff;stroke:#cbd5e1;stroke-width:1.2}
+.method-embed .box-encoder{fill:#fff;stroke:var(--accent-700);stroke-width:1.6}
+.method-embed .box-encoder-frozen{fill:#eef4ff;stroke:#93b6ff;stroke-width:1.4}
+.method-embed .box-decoder{fill:#fff;stroke:var(--mint-600);stroke-width:1.6}
+.method-embed .box-srq{fill:#fdfbff;stroke:var(--violet-500);stroke-width:1.5}
+.method-embed .box-mam{fill:#fff5f7;stroke:var(--rose-500);stroke-width:1.4;stroke-dasharray:5 4}
+.method-embed .wire{fill:none;stroke:#cbd5e1;stroke-width:1.4;stroke-linecap:round}
+.method-embed .wire-active{stroke:var(--accent-700);stroke-width:1.8;stroke-dasharray:6 6;animation:maWireDash 1.4s linear infinite}
+@keyframes maWireDash{to{stroke-dashoffset:-24}}
+.method-embed .token{fill:#fff;stroke:#94a3b8;stroke-width:1.2;rx:3;ry:3}
+.method-embed .token.ctx{stroke:var(--accent-700)}
+.method-embed .token.act{stroke:var(--mint-600)}
+.method-embed .token.pulse{animation:maPulse 1.2s ease-in-out infinite}
+@keyframes maPulse{0%,100%{filter:drop-shadow(0 0 0 rgba(59,102,245,0))}50%{filter:drop-shadow(0 0 6px rgba(59,102,245,.55))}}
+.method-embed .srq-cell{fill:#fff;stroke:#e4e4e7;stroke-width:1;rx:4;ry:4;transition:all .45s ease}
+.method-embed .srq-cell.l1{fill:#eef4ff}
+.method-embed .srq-cell.l1.fired{fill:#dbe7ff;stroke:var(--accent-700);stroke-width:1.6}
+.method-embed .srq-cell.l2.fired{fill:#ede9fe;stroke:var(--violet-500);stroke-width:1.4}
+.method-embed .srq-cell.l3.fired{fill:#fef3c7;stroke:#d97706;stroke-width:1.4}
+.method-embed .srq-cell.l4.fired{fill:#ecfdf5;stroke:var(--mint-600);stroke-width:1.4}
+.method-embed .srq-cell.masked{fill:url(#ma-hatch);stroke:var(--rose-500);stroke-width:1.8;filter:drop-shadow(0 0 6px rgba(244,63,94,.4))}
+.method-embed .srq-cell.predicted{fill:#dbe7ff;stroke:var(--mint-600);stroke-width:1.8;filter:drop-shadow(0 0 8px rgba(16,185,129,.5))}
+.method-embed .srq-cell.l1.hot-row{stroke:var(--rose-500);stroke-width:1.8;filter:drop-shadow(0 0 8px rgba(244,63,94,.35))}
+.method-embed .srq-code{font-family:'JetBrains Mono',monospace;font-size:9.5px;fill:#475569;text-anchor:middle;dominant-baseline:central}
+.method-embed .wave{fill:none;stroke:var(--mint-600);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:600;stroke-dashoffset:600;transition:stroke-dashoffset 1.8s ease-out}
+.method-embed .wave.drawn{stroke-dashoffset:0}
+.method-embed .wave-recon{stroke:var(--accent-700);stroke-dasharray:600;stroke-dashoffset:600;transition:stroke-dashoffset 1.6s ease-out}
+.method-embed .wave-recon.drawn{stroke-dashoffset:0}
+.method-embed .vframe{fill:#0b0d12;stroke:#1f242d;stroke-width:1;rx:3;ry:3}
+.method-embed .vframe-bar{fill:#3b66f5;opacity:.55}
+.method-embed .vframe-dot{fill:#fff;opacity:.85}
+.method-embed .inst-text{font-size:10.5px;fill:var(--ink-700);font-family:'Inter',sans-serif}
+.method-embed .inst-text.task{fill:var(--accent-700);font-weight:600}
+.method-embed .contrast-line{stroke:var(--violet-500);stroke-width:1.6;stroke-dasharray:4 5;fill:none;opacity:0;transition:opacity .4s ease}
+.method-embed .contrast-line.on{opacity:1;animation:maContrastPulse 1.6s ease-in-out infinite}
+@keyframes maContrastPulse{0%,100%{stroke-opacity:.5}50%{stroke-opacity:1}}
+.method-embed [data-stage] [data-show]{opacity:0;transition:opacity .5s ease}
+.method-embed [data-stage="1"] [data-show*="1"],.method-embed [data-stage="2"] [data-show*="2"],.method-embed [data-stage="3"] [data-show*="3"],.method-embed [data-stage="4"] [data-show*="4"],.method-embed [data-stage="5"] [data-show*="5"],.method-embed [data-stage="6"] [data-show*="6"]{opacity:1}
+.method-embed .tok-group{opacity:0;transition:opacity .6s ease}
+.method-embed .tok-group.on{opacity:1}
+.method-embed .glow{filter:drop-shadow(0 4px 12px rgba(59,102,245,.18))}
+
+.method-wrap .frame-wrap{position:relative;width:100%;aspect-ratio:16/9;background:#fff}
+.method-cap{
+  display:flex; align-items:center; justify-content:space-between; gap:20px;
+  padding:14px 22px;
+  border-top:1px solid var(--paper-200);
+  font-size:13px; color:var(--ink-500);
+  background:var(--paper-50);
+}
+.method-cap b{color:var(--ink-900); font-weight:600}
+.method-cap .play{
+  font-family:'JetBrains Mono', monospace; font-size:11px;
+  color:var(--accent-700);
+  display:inline-flex; align-items:center; gap:8px;
+}
+.method-cap .play .live{
+  width:6px; height:6px; border-radius:50%; background:var(--mint-500);
+  box-shadow:0 0 0 3px rgba(16,185,129,.2);
+  animation:livePulse 1.4s ease-in-out infinite;
+}
+@keyframes livePulse{
+  0%,100%{box-shadow:0 0 0 3px rgba(16,185,129,.2)}
+  50%{box-shadow:0 0 0 6px rgba(16,185,129,.05)}
+}
+
+/* method ingredients grid */
+.ingredients{
+  margin-top:32px;
+  display:grid; gap:16px;
+  grid-template-columns:repeat(3, 1fr);
+}
+.ingredient{
+  background:#fff;
+  border:1px solid var(--paper-200);
+  border-radius:14px;
+  padding:22px 22px 20px;
+  transition:border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+.ingredient:hover{
+  border-color:var(--ink-300);
+  transform:translateY(-2px);
+  box-shadow:0 12px 36px rgba(15,23,42,.06);
+}
+.ingredient .ic{
+  width:34px; height:34px; border-radius:9px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-family:'JetBrains Mono', monospace; font-weight:700; font-size:14px;
+  margin-bottom:14px;
+}
+.ingredient.encoder .ic{background:var(--accent-50); color:var(--accent-700); border:1px solid var(--accent-100)}
+.ingredient.srq .ic    {background:#f5f3ff;          color:#6d28d9;          border:1px solid #ddd6fe}
+.ingredient.decoder .ic{background:#ecfdf5;          color:var(--mint-600);  border:1px solid #a7f3d0}
+.ingredient h3{
+  font-family:'Newsreader', serif;
+  font-size:20px; font-weight:600; margin:0 0 8px; color:var(--ink-950);
+  letter-spacing:-.012em;
+}
+.ingredient p{margin:0; font-size:14px; color:var(--ink-500); line-height:1.6}
+.ingredient p b{color:var(--ink-900); font-weight:600}
+@media (max-width:780px){.ingredients{grid-template-columns:1fr}}
+
+/* ============== Codebook gallery ============== */
+.gallery{
+  display:grid; gap:18px;
+  grid-template-columns:repeat(3, 1fr);
+  margin-top:42px;
+}
+.gallery .card{
+  background:#fff;
+  border:1px solid var(--paper-200);
+  border-radius:14px;
+  overflow:hidden;
+  display:flex; flex-direction:column;
+}
+.gallery .card .img-wrap{
+  background:#fafbfd;
+  padding:14px;
+  flex:1;
+  display:flex; align-items:center; justify-content:center;
+}
+.gallery .card img{width:100%; height:auto; display:block; border-radius:6px}
+.gallery .card .meta{
+  padding:14px 18px;
+  border-top:1px solid var(--paper-200);
+}
+.gallery .card h4{
+  font-family:'Newsreader', serif;
+  font-size:16px; font-weight:600; margin:0 0 4px;
+  color:var(--ink-950); letter-spacing:-.012em;
+}
+.gallery .card p{margin:0; font-size:13px; color:var(--ink-500); line-height:1.55}
+@media (max-width:880px){.gallery{grid-template-columns:1fr 1fr}}
+@media (max-width:580px){.gallery{grid-template-columns:1fr}}
+
+/* ============== Noise robustness — custom SVG ============== */
+.noise-card{
+  margin-top:42px;
+  border:1px solid var(--paper-200);
+  border-radius:18px;
+  overflow:hidden;
+  background:#fff;
+}
+.noise-card .svg-wrap{
+  width:100%;
+  aspect-ratio: 1280 / 620;
+  background:#fff;
+}
+.noise-card svg{width:100%; height:100%; display:block}
+.noise-card .below{
+  padding:14px 22px;
+  border-top:1px solid var(--paper-200);
+  background:var(--paper-50);
+  display:flex; align-items:center; justify-content:space-between; gap:18px;
+  font-size:13px; color:var(--ink-500);
+}
+.noise-card .below b{color:var(--ink-900); font-weight:600}
+.noise-card .below .restart{
+  font-family:'JetBrains Mono', monospace; font-size:11px;
+  background:#fff; border:1px solid var(--paper-200);
+  padding:5px 11px; border-radius:9999px;
+  color:var(--ink-700); cursor:pointer;
+}
+.noise-card .below .restart:hover{border-color:var(--ink-700); color:var(--ink-950)}
+
+/* SVG class styles (mirror record_storyboard) */
+.noise-svg .h-eyebrow{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.14em;font-weight:700;fill:#1e40af;text-transform:uppercase}
+.noise-svg .h-title  {font-family:'Newsreader',serif;font-size:24px;font-weight:600;fill:#06070a;letter-spacing:-.015em}
+.noise-svg .h-sub    {font-family:'Inter',sans-serif;font-size:13px;fill:#475569;font-weight:500}
+.noise-svg .sigma-pill .bg   {fill:#fef2f2;stroke:#fda4af;stroke-width:1}
+.noise-svg .sigma-pill .label{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;fill:#9f1239;text-anchor:middle;letter-spacing:.16em;text-transform:uppercase}
+.noise-svg .sigma-pill .val  {font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;fill:#7f1d1d;text-anchor:middle}
+.noise-svg .sigma-pill.hot .val{fill:#dc2626}
+.noise-svg .wave-box      {fill:#ffffff;stroke:#e4e4e7;stroke-width:1.2}
+.noise-svg .wave-label    {font-family:'Inter',sans-serif;font-size:10.5px;font-weight:700;fill:#64748b;letter-spacing:.08em;text-transform:uppercase}
+.noise-svg .wave-clean    {fill:none;stroke:#059669;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.noise-svg .wave-noisy    {fill:none;stroke:#dc2626;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.noise-svg .chunk-divider {stroke:#e2e8f0;stroke-width:1;stroke-dasharray:2 3}
+.noise-svg .baseline      {stroke:#e8eaed;stroke-width:1}
+.noise-svg .enc-pill .bg  {fill:#faf5ff;stroke:#a78bfa;stroke-width:1.2}
+.noise-svg .enc-pill .txt {font-family:'Inter',sans-serif;font-size:12px;font-weight:700;fill:#6d28d9;text-anchor:middle;letter-spacing:.02em;dominant-baseline:central}
+.noise-svg .enc-pill .arrow{stroke:#7c3aed;stroke-width:1.6;fill:none}
+.noise-svg .row-label{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;fill:#1f242d;dominant-baseline:central;text-anchor:end}
+.noise-svg .cell-text{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;fill:#1f242d;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.noise-svg .cell-rect{stroke:#1f242d;stroke-width:1;rx:3;ry:3}
+.noise-svg .diff-circle{fill:none;stroke:#dc2626;stroke-width:1.6;stroke-linecap:round}
+.noise-svg .callout-bg  {fill:#fef2f2;stroke:#fda4af;stroke-width:1.2;filter:drop-shadow(0 4px 14px rgba(244,63,94,.18))}
+.noise-svg .callout-text{font-family:'Newsreader',serif;font-size:17px;font-weight:600;fill:#9f1239;dominant-baseline:central}
+.noise-svg .callout-text .big{font-size:22px;font-weight:700;fill:#dc2626}
+.noise-svg .tok-cell, .noise-svg .row-label, .noise-svg .diff-circle,
+.noise-svg #encPill, .noise-svg #noiseCallout, .noise-svg #waveNoise{
+  transition: opacity .35s ease, transform .35s ease, stroke-dashoffset .55s ease;
+}
+
+/* ============== Results grid (inline ECharts) ============== */
+.results-grid{
+  margin-top:42px;
+  display:grid; gap:18px;
+  grid-template-columns:1fr 1fr;
+  grid-auto-rows:auto;
+}
+.results-grid .rcard{
+  background:#fff;
+  border:1px solid var(--paper-200);
+  border-radius:14px;
+  overflow:hidden;
+  display:flex; flex-direction:column;
+}
+.results-grid .rcard.wide{grid-column:1 / -1}
+.rcard .head{
+  padding:14px 18px 10px;
+  border-bottom:1px solid var(--paper-200);
+  display:flex; align-items:flex-start; justify-content:space-between; gap:18px;
+}
+.rcard .head .title{
+  font-family:'Newsreader', serif; font-size:17px; font-weight:600;
+  color:var(--ink-950); letter-spacing:-.012em;
+}
+.rcard .head .title b{color:var(--accent-700)}
+.rcard .head .sub{
+  font-size:12px; color:var(--ink-500); margin-top:3px;
+}
+.rcard .head .stat{
+  font-family:'JetBrains Mono', monospace; font-size:11px; font-weight:600;
+  color:var(--accent-700);
+  background:var(--accent-50); border:1px solid var(--accent-100);
+  padding:4px 10px; border-radius:9999px;
+  white-space:nowrap;
+}
+.rcard .frame{
+  position:relative;
+  width:100%;
+}
+
+/* ============== Inline ECharts panels ============== */
+.rcard .frame{display:flex;flex-direction:column;background:#fff;padding:6px 14px 10px}
+.chart-panel{display:flex;flex-direction:column;flex:1;min-height:0;width:100%;height:100%}
+.chart-legend{display:flex;align-items:center;justify-content:center;gap:18px;height:26px;font-size:13px;font-weight:700;color:#2C2A35;flex-wrap:wrap;margin-bottom:4px}
+.chart-legend .legend-item{display:inline-flex;align-items:center;gap:7px}
+.chart-legend sub{font-size:.72em;font-weight:700;vertical-align:-.18em}
+.chart-legend .swatch{width:18px;height:11px;border-radius:4px;box-shadow:0 1px 2px rgba(40,32,60,.18),inset 0 1px 0 rgba(255,255,255,.55),inset 0 -1px 0 rgba(0,0,0,.06)}
+.chart-legend .swatch.pi0{background:linear-gradient(180deg,#ECE7F2 0%,#D6D0E0 35%,#C9C3D4 60%,#A39CB2 100%)}
+.chart-legend .swatch.pi05{background:linear-gradient(180deg,#FBD9E1 0%,#F2BCC9 35%,#E8A8B8 60%,#C2778B 100%)}
+.chart-legend .swatch.xvla{background:linear-gradient(180deg,#D2E4F7 0%,#A5C5EA 35%,#7AA8DD 60%,#4D81BA 100%)}
+.chart-legend .swatch.ours,.chart-legend .swatch.joint{background:linear-gradient(180deg,#BAD2EE 0%,#8AB1DC 35%,#5A92CC 60%,#366FA6 100%)}
+.chart-legend .swatch.single{background:linear-gradient(180deg,#ECE7F2 0%,#D6D0E0 35%,#C9C3D4 60%,#A39CB2 100%)}
+.chart-legend .swatch.base{background:linear-gradient(180deg,#ECE7F2 0%,#D6D0E0 35%,#C9C3D4 60%,#A39CB2 100%)}
+.chart-legend .swatch.fast{background:linear-gradient(180deg,#FBD9E1 0%,#F2BCC9 35%,#E8A8B8 60%,#C2778B 100%)}
+.chart-legend .swatch.rvq{background:linear-gradient(180deg,#D2E4F7 0%,#A5C5EA 35%,#7AA8DD 60%,#4D81BA 100%)}
+.chart-legend .ours-tag{color:#5A92CC;font-weight:700;margin-left:2px}
+.chart-canvas{flex:1;min-height:0;width:100%}
+
+
+
+.rcard.dualarm .frame, .rcard.cross .frame{aspect-ratio:1.55/1}
+.rcard.real .frame{aspect-ratio:2.45/1}
+@media (max-width:780px){
+  .results-grid{grid-template-columns:1fr}
+  .rcard.dualarm .frame, .rcard.cross .frame{aspect-ratio:1.55/1}
+}
+
+/* ============== Videos · dual filmstrip ============== */
+.demo-stage{
+  position:relative;
+  margin-top:44px;
+  padding:0 44px;
+}
+.demo-scroll{
+  position:absolute; top:50%; transform:translateY(-50%);
+  z-index:3;
+  width:40px; height:40px;
+  border-radius:50%;
+  border:1px solid var(--paper-200);
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(8px);
+  color:var(--ink-700);
+  font-size:22px; line-height:1;
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 18px rgba(15,23,42,.08);
+  transition:background .15s ease, border-color .15s ease, transform .15s ease;
+}
+.demo-scroll:hover{
+  background:#fff;
+  border-color:var(--ink-300);
+  color:var(--ink-950);
+  transform:translateY(-50%) scale(1.04);
+}
+.demo-scroll.prev{left:0}
+.demo-scroll.next{right:0}
+.demo-stage::before,
+.demo-stage::after{
+  content:'';
+  position:absolute; top:0; bottom:24px;
+  width:48px; z-index:2; pointer-events:none;
+}
+.demo-stage::before{ left:44px; background:linear-gradient(to right, #fff 30%, transparent); }
+.demo-stage::after { right:44px; background:linear-gradient(to left,  #fff 30%, transparent); }
+
+.demo-rows{display:flex; flex-direction:column; gap:18px}
+.demo-row{
+  display:flex; gap:16px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scroll-snap-type:x mandatory;
+  scroll-padding-inline:28px;
+  padding:4px 28px 16px;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.demo-row::-webkit-scrollbar{display:none}
+
+.demo-card{
+  flex:0 0 clamp(280px, 32vw, 380px);
+  scroll-snap-align:start;
+  background:#fff;
+  border:1px solid var(--paper-200);
+  border-radius:18px;
+  overflow:hidden;
+  box-shadow:0 1px 0 rgba(15,23,42,.04);
+  transition:transform .25s cubic-bezier(.2,.6,.2,1), box-shadow .25s ease;
+}
+.demo-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 16px 48px rgba(15,23,42,.09);
+}
+.demo-card .media{
+  aspect-ratio:4/3;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  background:#0b0d12;
+  border-bottom:1px solid var(--paper-200);
+  line-height:0;
+}
+.demo-card .media video{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:contain;
+  object-position:center;
+  background:#0b0d12;
+}
+.demo-card .foot{
+  padding:14px 16px 16px;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+}
+.demo-card .foot .name{
+  font-size:14px; font-weight:600; color:var(--ink-950);
+  letter-spacing:-.01em; line-height:1.35;
+}
+.demo-card .foot .speed{
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px; font-weight:600; color:var(--accent-700);
+  background:var(--accent-50); border:1px solid var(--accent-100);
+  padding:4px 9px; border-radius:9999px;
+}
+
+@media (max-width:640px){
+  .demo-stage{padding:0 36px}
+  .demo-stage::before{left:36px}
+  .demo-stage::after{right:36px}
+  .demo-card{flex-basis:min(300px, 84vw)}
+}
+.video-note{
+  margin-top:18px; font-size:13px; color:var(--ink-500); text-align:center;
+}
+.video-note b{color:var(--ink-900); font-weight:600}
+
+/* ============== BibTeX ============== */
+.bibtex{
+  background:#06070a; color:#cbd5e1;
+  border-radius:14px;
+  padding:22px 24px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:13px; line-height:1.7;
+  overflow-x:auto;
+  white-space:pre;
+  margin-top:24px;
+  position:relative;
+}
+.bibtex .k{color:#a5c0ff}
+.bibtex .v{color:#fff}
+.bibtex .copy-btn{
+  position:absolute; top:14px; right:14px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  color:#cbd5e1;
+  padding:5px 11px; border-radius:9999px;
+  font-family:'Inter', sans-serif; font-size:11px; font-weight:500;
+  cursor:pointer; transition:all .15s ease;
+}
+.bibtex .copy-btn:hover{background:rgba(255,255,255,.12); color:#fff}
+
+/* ============== Footer ============== */
+footer{
+  border-top:1px solid var(--paper-200);
+  background:#fafbfd;
+  padding:48px 28px 60px;
+  text-align:center;
+  margin-top:48px;
+}
+footer .ftxt{
+  font-size:13px; color:var(--ink-500); line-height:1.7;
+  max-width:780px; margin:0 auto;
+}
+footer .ftxt b{color:var(--ink-900); font-weight:600}
+footer .brandline{
+  display:inline-flex; align-items:center; gap:8px;
+  font-family:'Newsreader', serif; font-size:18px; font-weight:600;
+  color:var(--ink-950); margin-bottom:14px;
+}
+footer .brandline .dot{width:8px; height:8px; background:var(--accent-700); border-radius:2px}
+
+/* ============== Section divider ============== */
+.divider{
+  max-width:var(--max-w); margin:0 auto;
+  border-top:1px solid var(--paper-200);
+}
+
+/* Subtle scrollbar */
+::selection{background:#dfe9ff; color:var(--ink-950)}
+
+/* ============== Inline ECharts panels ============== */
+.rcard .frame{display:flex;flex-direction:column;background:#fff;padding:6px 14px 10px;height:100%}
+.chart-panel{display:flex;flex-direction:column;flex:1;min-height:0;width:100%;height:100%}
+.chart-legend{display:flex;align-items:center;justify-content:center;gap:18px;min-height:26px;font-size:13px;font-weight:700;color:#2C2A35;flex-wrap:wrap;margin-bottom:4px}
+.chart-legend .legend-item{display:inline-flex;align-items:center;gap:7px}
+.chart-legend sub{font-size:.72em;font-weight:700;vertical-align:-.18em}
+.chart-legend .swatch{width:18px;height:11px;border-radius:4px;box-shadow:0 1px 2px rgba(40,32,60,.18),inset 0 1px 0 rgba(255,255,255,.55),inset 0 -1px 0 rgba(0,0,0,.06)}
+.chart-legend .swatch.pi0,.chart-legend .swatch.single,.chart-legend .swatch.base{background:linear-gradient(180deg,#ECE7F2 0%,#D6D0E0 35%,#C9C3D4 60%,#A39CB2 100%)}
+.chart-legend .swatch.pi05,.chart-legend .swatch.fast{background:linear-gradient(180deg,#FBD9E1 0%,#F2BCC9 35%,#E8A8B8 60%,#C2778B 100%)}
+.chart-legend .swatch.xvla,.chart-legend .swatch.rvq{background:linear-gradient(180deg,#D2E4F7 0%,#A5C5EA 35%,#7AA8DD 60%,#4D81BA 100%)}
+.chart-legend .swatch.ours,.chart-legend .swatch.joint{background:linear-gradient(180deg,#BAD2EE 0%,#8AB1DC 35%,#5A92CC 60%,#366FA6 100%)}
+.chart-legend .ours-tag{color:#5A92CC;font-weight:700;margin-left:2px}
+.chart-canvas{flex:1;min-height:220px;width:100%}
+
+</style>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+</head>
+<body>
+
+<!-- ================== NAV ================== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="brand"><span class="dot"></span><span>X-Tokenizer</span></div>
+    <div class="links">
+      <a href="#abstract">Abstract</a>
+      <a href="#method">Method</a>
+      <a href="#robustness">Robustness</a>
+      <a href="#results">Results</a>
+      <a href="#videos">Demos</a>
+      <a href="#bibtex">Cite</a>
+      <a href="#" class="cta">Paper</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ================== HERO ================== -->
+<header class="hero">
+  <div class="hero-inner">
+    <h1>X<span class="accent">-</span>Tokenizer</h1>
+    <div class="tagline">
+      A <b>multimodal action tokenizer</b> that doubles as a <b>semantic interface</b><br>
+      between vision-language reasoning and continuous robot control.
+    </div>
+    <div class="sub">
+      One frozen tokenizer pretrained on <b>2.4 M trajectories</b> across <b>17 arm families</b> — reused for both VLM grounding and downstream VLA pretraining without per-task tuning.
+    </div>
+
+    <div class="authors">
+      <span class="auth">Xirui Kang<sup>1,2,3,*</sup></span>·
+      <span class="auth">Yanpei Shi<sup>1,*,†</sup></span>·
+      <span class="auth">Lucy Liang<sup>1,†</sup></span>·
+      <span class="auth">Roy Gan<sup>1</sup></span>·
+      <span class="auth">Dongxiu Liu<sup>1,3</sup></span>·
+      <span class="auth">Pushi Zhang<sup>1</sup></span>·
+      <span class="auth">Danpeng Chen<sup>1</sup></span>·
+      <span class="auth">Xiaoyi Qin<sup>1</sup></span>·
+      <span class="auth">Yinan Zheng<sup>3</sup></span>·
+      <span class="auth">Jinliang Zheng<sup>3</sup></span>·
+      <span class="auth">Hao Wang<sup>1</sup></span>·
+      <span class="auth">Xianyuan Zhan<sup>3,‡</sup></span>·
+      <span class="auth">Hang Su<sup>1,3,‡</sup></span>
+    </div>
+
+    <div class="affil">
+      <span><sup>1</sup>X Square Robot</span>
+      <span><sup>2</sup>City University of Hong Kong</span>
+      <span><sup>3</sup>Tsinghua University</span>
+      <span class="key"><sup>*</sup> Equal contribution &nbsp;·&nbsp; <sup>†</sup> Project lead &nbsp;·&nbsp; <sup>‡</sup> Corresponding author</span>
+    </div>
+
+    <div class="cta-row">
+      <a href="#" class="btn primary">
+        <span class="ic">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </span>
+        Paper (PDF)
+      </a>
+      <a href="#" class="btn ghost">
+        <span class="ic">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </span>
+        Code · coming soon
+      </a>
+      <a href="#bibtex" class="btn ghost">
+        <span class="ic">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </span>
+        BibTeX
+      </a>
+    </div>
+  </div>
+
+  <!-- Stat strip -->
+  <div class="stat-strip">
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="num"><span id="stat-traj">0</span><span class="unit">M</span></div>
+        <div class="lbl">Trajectories</div>
+      </div>
+      <div class="stat">
+        <div class="num"><span id="stat-frames">0</span><span class="unit">B</span></div>
+        <div class="lbl">Action frames</div>
+      </div>
+      <div class="stat">
+        <div class="num"><span id="stat-arms">0</span></div>
+        <div class="lbl">Arm families</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ================== ABSTRACT ================== -->
+<section class="block" id="abstract">
+  <div class="reveal">
+    <div class="eyebrow">Abstract</div>
+    <h2>Action tokenization as <span class="accent">semantic interface learning</span>.</h2>
+  </div>
+  <div class="abstract-wrap" style="margin-top:30px">
+    <div class="side reveal">TL;DR</div>
+    <div class="body reveal delay-1">
+      <p>
+        Existing action tokenizers compress motion into discrete codes — but the codes are <em>opaque</em> to the surrounding vision-language model. <b>X-Tokenizer</b> reframes tokenization as <b>semantic interface learning</b>: we co-train a multimodal encoder, a <b>Semantic Residual Quantizer</b> (SRQ), and a paired decoder so that the top-level codes <span class="pill">q₀</span> are <em>simultaneously</em> grounded in language and faithful to motion.
+      </p>
+      <p>
+        Pretraining at <b>scale</b> — 2.4 M trajectories, 2.0 B action frames, 17 arm families — yields one frozen tokenizer that <em>reuses</em> across (i) RoboTwin 2.0 dual-arm benchmarks, (ii) 5-arm cross-embodiment joint training, and (iii) real-world tabletop manipulation, while leaving the host VLM's reasoning ability intact.
+      </p>
+      <p>
+        On RoboTwin Hard the dual-arm setting degrades only <b>−3.8</b> (vs. <b>−5.9</b> for π0.5). Cross-embodiment joint training lifts Hard by <b>+10.4</b>. Real-world average is <b>77.4</b> across 7 tasks with <b>no per-task tuning</b>. Against FAST, multimodal grounding gains <b>+13.5 %</b> and long-horizon execution gains <b>+8.25</b>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ================== METHOD ================== -->
+<section class="block" id="method">
+  <div class="reveal">
+    <div class="eyebrow">Method · Encoder → SRQ → Decoder</div>
+    <h2>One pretraining pipeline. <span class="accent">Three reusable parts.</span></h2>
+    <div class="lede">
+      The encoder aligns each action chunk to the <b>VLM’s compressed features</b> from the same timestep — co-temporal downsampled <b>tri-view video</b>, task-level language, and fine-grained <b>sub-task instructions</b>. SRQ discretises the aligned latent into intent code <i>q₀</i> and kinematic residuals <i>q₁₋₃</i>. The decoder’s primary job is <b>action reconstruction</b>, with an auxiliary head that predicts next-frame VLM features.
+    </div>
+  </div>
+
+  <!-- Embed the existing method animation -->
+  <div class="method-wrap reveal delay-1">
+    <div class="frame-wrap">
+      <div class="method-embed" id="method-embed">
+<div class="ma-stage-wrap">
+<div class="ma-stage" id="ma-stage" data-stage="1">
+
+  <!-- =================== TITLE BAND =================== -->
+  <div class="ma-title-band">
+    <div class="logo">
+      <span class="dot"></span>
+      <span>X-Tokenizer</span>
+      <span style="color:#94a3b8;font-weight:400;margin-left:6px">·</span>
+      <span style="color:#475569;font-weight:400;font-size:13px;margin-left:6px">Encoder · SRQ · Decoder</span>
+    </div>
+    <div class="stage-name" id="ma-stage-name"><b>Step 0</b> / 6 · Loading</div>
+  </div>
+
+  <!-- =================== DIAGRAM SVG =================== -->
+  <div class="ma-diagram">
+  <svg viewBox="0 0 1280 616" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- Diagonal hatch for masked token -->
+      <pattern id="ma-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+        <rect width="6" height="6" fill="#ffe4e6"/>
+        <line x1="0" y1="0" x2="0" y2="6" stroke="#f43f5e" stroke-width="2"/>
+      </pattern>
+      <!-- Arrowhead -->
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0 0 L10 5 L0 10 z" fill="#94a3b8"/>
+      </marker>
+      <marker id="arr-active" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0 0 L10 5 L0 10 z" fill="#1e40af"/>
+      </marker>
+      <marker id="arr-mint" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0 0 L10 5 L0 10 z" fill="#059669"/>
+      </marker>
+      <marker id="arr-rose" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0 0 L10 5 L0 10 z" fill="#be123c"/>
+      </marker>
+
+      <!-- Soft card gradient -->
+      <linearGradient id="srq-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#fdfbff"/>
+        <stop offset="100%" stop-color="#f5f3ff"/>
+      </linearGradient>
+    </defs>
+
+    <!-- ================= LEFT: INPUTS ================= -->
+    <g id="inputs" class="ent" data-show="1,2,3,4,5,6">
+      <!-- Multi-view video -->
+      <text x="40" y="36" class="label">Sparse Multi-View Video</text>
+      <g id="video-frames">
+        <g class="vframe-cell" data-i="0">
+          <rect class="vframe" x="40" y="52" width="78" height="52"/>
+          <rect class="vframe-bar" x="48" y="80" width="22" height="4" rx="1"/>
+          <rect class="vframe-bar" x="48" y="88" width="40" height="4" rx="1" opacity=".45"/>
+          <circle class="vframe-dot" cx="92" cy="68" r="3"/>
+        </g>
+        <g class="vframe-cell" data-i="1">
+          <rect class="vframe" x="126" y="52" width="78" height="52"/>
+          <rect class="vframe-bar" x="134" y="84" width="28" height="4" rx="1"/>
+          <circle class="vframe-dot" cx="180" cy="70" r="3"/>
+        </g>
+        <g class="vframe-cell" data-i="2">
+          <rect class="vframe" x="212" y="52" width="78" height="52"/>
+          <rect class="vframe-bar" x="220" y="82" width="34" height="4" rx="1"/>
+          <circle class="vframe-dot" cx="266" cy="72" r="3"/>
+        </g>
+      </g>
+
+      <!-- Instructions -->
+      <text x="40" y="142" class="label">Instructions</text>
+      <rect class="box-input" x="40" y="156" width="250" height="78" rx="8"/>
+      <text x="52" y="176" class="inst-text task">Task: Package the coffee box</text>
+      <text x="52" y="196" class="inst-text" id="inst-sub-1">Sub: Use the right arm to place</text>
+      <text x="52" y="212" class="inst-text" id="inst-sub-2">the coffee box into the carton.</text>
+
+      <!-- Action chunk waveform -->
+      <text x="40" y="282" class="label">Action Chunk</text>
+      <rect class="box-input" x="40" y="296" width="250" height="80" rx="8"/>
+      <path id="ma-wave-input" class="wave"
+            d="M52 336 C 70 318, 86 360, 104 340 C 122 322, 138 358, 156 344 C 176 328, 192 360, 210 340 C 226 324, 244 354, 266 336"/>
+      <!-- ticks -->
+      <g opacity=".5">
+        <circle cx="52"  cy="336" r="2" fill="#10b981"/>
+        <circle cx="104" cy="340" r="2" fill="#10b981"/>
+        <circle cx="156" cy="344" r="2" fill="#10b981"/>
+        <circle cx="210" cy="340" r="2" fill="#10b981"/>
+        <circle cx="266" cy="336" r="2" fill="#10b981"/>
+      </g>
+    </g>
+
+    <!-- ================= ENCODERS ================= -->
+    <g id="encoders" class="ent" data-show="2,3,4,5,6">
+      <!-- Context Encoder (frozen) -->
+      <g id="ctx-encoder">
+        <rect class="box-encoder-frozen" x="328" y="92" width="130" height="100" rx="12"/>
+        <text x="393" y="138" text-anchor="middle" class="label-title" style="font-size:14px">Context</text>
+        <text x="393" y="156" text-anchor="middle" class="label-title" style="font-size:14px">Encoder</text>
+        <text x="446" y="108" text-anchor="middle" class="badge-frozen">&#10052;&#65039;</text>
+      </g>
+      <!-- Action Encoder (trainable) -->
+      <g id="act-encoder">
+        <rect class="box-encoder" x="328" y="296" width="130" height="80" rx="12"/>
+        <text x="393" y="330" text-anchor="middle" class="label-title" style="font-size:14px">Action</text>
+        <text x="393" y="348" text-anchor="middle" class="label-title" style="font-size:14px">Encoder</text>
+        <text x="446" y="312" text-anchor="middle" class="badge-fire">&#128293;</text>
+      </g>
+
+      <!-- Wires from inputs to encoders -->
+      <path id="ma-wire-v1" class="wire" d="M 290 78  C 310 78, 310 130, 328 130" marker-end="url(#arr)"/>
+      <path id="ma-wire-v2" class="wire" d="M 290 156 C 310 156, 310 142, 328 142" marker-end="url(#arr)"/>
+      <path id="ma-wire-act" class="wire" d="M 290 336 C 310 336, 310 336, 328 336" marker-end="url(#arr)"/>
+
+      <!-- Encoder output tokens (4 each — equal count). Visibility toggled by JS in stage 2 enter. -->
+      <g id="ma-ctx-tokens" class="tok-group">
+        <rect class="token ctx" x="470" y="116" width="22" height="20"/>
+        <rect class="token ctx" x="496" y="116" width="22" height="20"/>
+        <rect class="token ctx" x="470" y="142" width="22" height="20"/>
+        <rect class="token ctx" x="496" y="142" width="22" height="20"/>
+      </g>
+      <g id="ma-act-tokens" class="tok-group">
+        <rect class="token act" x="470" y="316" width="22" height="20"/>
+        <rect class="token act" x="496" y="316" width="22" height="20"/>
+        <rect class="token act" x="470" y="342" width="22" height="20"/>
+        <rect class="token act" x="496" y="342" width="22" height="20"/>
+      </g>
+    </g>
+
+    <!-- ================= CONTRASTIVE =================
+         Line passes through the horizontal center of the token groups (x=494),
+         i.e. the natural gap between the two columns of each token grid.
+         Label is a centered pill badge floating on the line. -->
+    <g id="contrastive" class="ent" data-show="3,4,5,6">
+      <path id="ma-contrast-line" class="contrast-line"
+            d="M 494 168 L 494 312"/>
+      <!-- endpoint dots anchor the line to both token rows -->
+      <circle cx="494" cy="168" r="3.4" fill="#7c3aed" opacity=".9"/>
+      <circle cx="494" cy="312" r="3.4" fill="#7c3aed" opacity=".9"/>
+      <!-- pill badge label centered on the line -->
+      <g id="contrast-label">
+        <rect x="444" y="224" width="100" height="36" rx="18"
+              fill="#ffffff" stroke="#a78bfa" stroke-width="1.4"/>
+        <text x="494" y="240" text-anchor="middle" font-weight="700" fill="#7c3aed"
+              style="font-size:12px;font-family:'Inter',sans-serif;letter-spacing:.02em">Contrastive</text>
+        <text x="494" y="254" text-anchor="middle" font-weight="700" fill="#7c3aed"
+              style="font-size:12px;font-family:'Inter',sans-serif;letter-spacing:.02em">Learning</text>
+      </g>
+    </g>
+
+    <!-- ================= ACTION TOKENS → SRQ (curved wire) ================= -->
+    <g id="act-to-srq-wire" class="ent" data-show="4,5,6">
+      <path id="ma-wire-act-to-srq" class="wire"
+            d="M 520 339 C 562 339, 588 230, 622 227"
+            marker-end="url(#arr-mint)"/>
+    </g>
+
+    <!-- ================= SRQ GRID ================= -->
+    <g id="srq" class="ent" data-show="4,5,6">
+      <rect class="box-srq glow" x="560" y="76" width="448" height="312" rx="14" fill="url(#srq-grad)"/>
+      <text x="784" y="100" text-anchor="middle" class="label-title" style="font-size:14px;fill:#7c3aed">
+        Semantic Residual Quantization &#128293;
+      </text>
+
+      <!-- Token column headers -->
+      <g id="srq-headers" class="mono" fill="#64748b">
+        <text x="640" y="124" text-anchor="middle">token 1</text>
+        <text x="688" y="124" text-anchor="middle">token 2</text>
+        <text x="736" y="124" text-anchor="middle">token 3</text>
+        <text x="784" y="124" text-anchor="middle">token 4</text>
+        <text x="832" y="124" text-anchor="middle">token 5</text>
+        <text x="880" y="124" text-anchor="middle">···</text>
+        <text x="928" y="124" text-anchor="middle">token n</text>
+      </g>
+
+      <!-- Layer labels (y aligned to cell row centers: 155, 203, 251, 299) -->
+      <g class="mono" fill="#1f242d" font-weight="600" dominant-baseline="central">
+        <text x="610" y="155" text-anchor="end">layer1</text>
+        <text x="610" y="203" text-anchor="end">layer2</text>
+        <text x="610" y="251" text-anchor="end">layer3</text>
+        <text x="610" y="299" text-anchor="end">layer4</text>
+      </g>
+
+      <!-- 4 rows x 7 cells (token1..5, ..., tokenN) -->
+      <g id="ma-srq-grid"></g>
+    </g>
+
+    <!-- ================= SRQ → MAM (codebook outputs layer-1 tokens downward) ================= -->
+    <g id="srq-to-mam-wire" class="ent" data-show="5,6">
+      <path id="ma-wire-srq-to-mam"
+            d="M 700 388 L 700 416"
+            fill="none" stroke="#be123c" stroke-width="1.8" stroke-linecap="round"
+            marker-end="url(#arr-rose)"/>
+      <text x="712" y="405" font-family="JetBrains Mono" font-size="10" fill="#9f1239" font-weight="600">q¹</text>
+    </g>
+
+    <!-- ================= MAM ================= -->
+    <g id="mam" class="ent" data-show="5,6">
+      <rect class="box-mam" x="600" y="416" width="408" height="148" rx="12"/>
+      <text x="804" y="438" text-anchor="middle" class="label-title" style="font-size:13px;fill:#be123c">
+        Masked Action Token Prediction
+      </text>
+
+      <!-- Masked input tokens (layer-1 codes; one becomes masked when stage 5 fires) -->
+      <g id="ma-mam-input-row">
+        <rect class="srq-cell l1 mam-cell" data-i="0" x="616" y="460" width="32" height="26" rx="4"/>
+        <rect class="srq-cell l1 mam-cell" data-i="1" x="652" y="460" width="32" height="26" rx="4"/>
+        <rect class="srq-cell l1 mam-cell" data-i="2" x="688" y="460" width="32" height="26" rx="4"/>
+        <text x="734" y="478" class="mono" text-anchor="middle">···</text>
+        <rect class="srq-cell l1 mam-cell" data-i="4" x="752" y="460" width="32" height="26" rx="4"/>
+      </g>
+      <!-- arrow -->
+      <path d="M 792 473 L 822 473" class="wire" marker-end="url(#arr)"/>
+
+      <!-- Transformer mini box -->
+      <rect x="828" y="456" width="68" height="36" rx="6" fill="#fff" stroke="#be123c" stroke-width="1.4"/>
+      <text x="862" y="479" text-anchor="middle" class="label-title" style="font-size:11px;fill:#9f1239">Transformer</text>
+
+      <path d="M 896 473 L 920 473" class="wire" marker-end="url(#arr)"/>
+      <rect x="926" y="456" width="56" height="36" rx="6" fill="#fff" stroke="#be123c" stroke-width="1.4"/>
+      <text x="954" y="479" text-anchor="middle" class="label-title" style="font-size:11px;fill:#9f1239">SoftMax</text>
+
+      <!-- Prediction output below -->
+      <text x="804" y="520" text-anchor="middle" class="mono" fill="#9f1239" font-weight="600">
+        &rarr; Pred Mask Action Token
+      </text>
+      <rect id="ma-mam-pred-cell" class="srq-cell predicted" x="788" y="528" width="32" height="26" rx="4" opacity="0"/>
+      <text id="ma-mam-pred-text" class="srq-code" x="804" y="541" opacity="0" font-weight="700" fill="#059669">q&#8321;&#178;</text>
+    </g>
+
+    <!-- ================= DECODERS (visible from stage 4, wired up in stage 6) ================= -->
+    <g id="decoders" class="ent" data-show="4,5,6">
+      <!-- Action Decoder -->
+      <g id="act-decoder">
+        <rect class="box-decoder" x="1036" y="92" width="130" height="80" rx="12"/>
+        <text x="1101" y="126" text-anchor="middle" class="label-title" style="font-size:14px">Action</text>
+        <text x="1101" y="144" text-anchor="middle" class="label-title" style="font-size:14px">Decoder</text>
+        <text x="1156" y="108" text-anchor="middle" class="badge-fire">&#128293;</text>
+      </g>
+
+      <!-- Future Feature Predictor -->
+      <g id="fut-pred">
+        <rect class="box-decoder" x="1036" y="280" width="130" height="80" rx="12"/>
+        <text x="1101" y="314" text-anchor="middle" class="label-title" style="font-size:14px">Future Feature</text>
+        <text x="1101" y="332" text-anchor="middle" class="label-title" style="font-size:14px">Predictor</text>
+        <text x="1156" y="296" text-anchor="middle" class="badge-fire">&#128293;</text>
+      </g>
+
+      <!-- Wires from SRQ to decoders -->
+      <path id="ma-wire-dec1" class="wire" d="M 1008 152 C 1020 132, 1024 132, 1036 132" marker-end="url(#arr)"/>
+      <path id="ma-wire-dec2" class="wire" d="M 1008 232 C 1020 320, 1024 320, 1036 320" marker-end="url(#arr)"/>
+
+      <!-- Reconstructed action chunk — 2-line label centered above the box -->
+      <text x="1224" y="68" text-anchor="middle"
+            font-family="Inter,sans-serif" font-size="10" font-weight="600"
+            fill="#475569" style="letter-spacing:.06em">RECONSTRUCTED</text>
+      <text x="1224" y="82" text-anchor="middle"
+            font-family="Inter,sans-serif" font-size="10" font-weight="600"
+            fill="#475569" style="letter-spacing:.06em">ACTION CHUNK</text>
+      <rect class="box-input" x="1184" y="92" width="80" height="80" rx="8"/>
+      <path id="ma-wave-recon" class="wave-recon"
+            d="M1190 132 C 1198 118, 1206 146, 1216 132 C 1226 118, 1234 144, 1244 132 C 1252 122, 1258 144, 1260 132"/>
+      <g opacity=".6" id="wave-recon-dots">
+        <circle cx="1190" cy="132" r="1.8" fill="#1e40af"/>
+        <circle cx="1216" cy="132" r="1.8" fill="#1e40af"/>
+        <circle cx="1244" cy="132" r="1.8" fill="#1e40af"/>
+      </g>
+
+      <!-- Future feature blocks — 2-line label centered above the box -->
+      <text x="1224" y="256" text-anchor="middle"
+            font-family="Inter,sans-serif" font-size="10" font-weight="600"
+            fill="#475569" style="letter-spacing:.06em">PREDICTED FUTURE</text>
+      <text x="1224" y="270" text-anchor="middle"
+            font-family="Inter,sans-serif" font-size="10" font-weight="600"
+            fill="#475569" style="letter-spacing:.06em">CONTEXT FEATURE</text>
+      <rect class="box-input" x="1184" y="280" width="80" height="80" rx="8"/>
+      <g id="ma-fut-blocks">
+        <rect class="token ctx" x="1196" y="296" width="20" height="18"/>
+        <rect class="token ctx" x="1222" y="296" width="20" height="18"/>
+        <rect class="token ctx" x="1196" y="322" width="20" height="18"/>
+        <rect class="token ctx" x="1222" y="322" width="20" height="18"/>
+      </g>
+    </g>
+
+    <!-- ================= PARTICLES (created/animated by JS) ================= -->
+    <g id="ma-particles"></g>
+  </svg>
+  </div>
+
+  <!-- =================== FOOTER BAND =================== -->
+  <div class="ma-footer-band">
+    <span class="step-pill" id="ma-step-pill">STEP 1</span>
+    <span class="caption" id="ma-caption">Real sensors stream in: 3 video views, language instructions, and a chunk of robot actions.</span>
+    <span class="progress"><span id="ma-progress-bar"></span></span>
+  </div>
+
+</div>
+</div>
+
+<!-- Floating controls -->
+<div class="ma-chrome">
+  <button id="ma-btn-restart">↻ Restart</button>
+  <button id="ma-btn-play" class="primary">⏸ Pause</button>
+  <span class="time" id="ma-time">0.0s</span>
+  <button id="ma-btn-record">Record mode</button>
+</div>
+
+
+</div>
+    </div>
+    <div class="method-cap">
+      <span><b>Live</b> · 20-second animated walkthrough · Encoder → Contrastive → SRQ → MAM → Decode</span>
+      <span class="play"><span class="live"></span>animation auto-plays in view</span>
+    </div>
+  </div>
+
+  <div class="ingredients">
+    <div class="ingredient encoder reveal">
+      <div class="ic">E</div>
+      <h3>Multimodal encoder</h3>
+      <p>Each action chunk is aligned to the <b>VLM’s downsampled features</b> at the same timestep — not raw pixels. Context comes from <b>tri-view video</b> (same temporal stride), the task-level language instruction, and fine-grained <b>sub-task instructions</b>. Contrastive InfoNCE pulls the action stream into the VLM’s compressed representation space.</p>
+    </div>
+    <div class="ingredient srq reveal delay-1">
+      <div class="ic">Q</div>
+      <h3>Semantic Residual Quantizer</h3>
+      <p><b>4-layer residual VQ</b> on the aligned latent. Top code <i>q₀</i> captures coarse intent; residuals <i>q₁₋₃</i> absorb continuous kinematic detail. Codebook usage is kept wide via EMA reset.</p>
+    </div>
+    <div class="ingredient decoder reveal delay-2">
+      <div class="ic">D</div>
+      <h3>Decoder + dual heads</h3>
+      <p><b>Primary:</b> masked action modeling reconstructs the original continuous action chunk. <b>Auxiliary:</b> a lightweight head predicts <b>next-frame VLM features</b> as extra supervision — keeping codes grounded in the VLM space without shifting the main objective away from action reconstruction.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ================== CODEBOOK GALLERY ================== -->
+<section class="block">
+  <div class="reveal">
+    <div class="eyebrow">Codebook · diagnostics</div>
+    <h2>The codebook is <span class="accent">used.</span> The embedding space is <span class="accent">aligned.</span></h2>
+    <div class="lede">
+      Wide and balanced codebook utilisation (no collapse, no dead codes). UMAP of the <i>q₀</i> embeddings shows that action codes cluster by <b>semantic intent</b>, not by raw kinematic similarity.
+    </div>
+  </div>
+
+  <div class="gallery">
+    <div class="card reveal">
+      <div class="img-wrap"><img src="assets/figures/fig3a_usage.png" alt="Codebook usage" loading="lazy"/></div>
+      <div class="meta">
+        <h4>Codebook usage</h4>
+        <p>Token frequencies across the full <b>2.0 B</b> pretraining frames stay within a tight band — no degenerate cluster dominates.</p>
+      </div>
+    </div>
+    <div class="card reveal delay-1">
+      <div class="img-wrap"><img src="assets/figures/fig3b_perplexity.png" alt="Codebook perplexity" loading="lazy"/></div>
+      <div class="meta">
+        <h4>Perplexity</h4>
+        <p>Effective codebook size rises monotonically during pretraining and saturates near the theoretical ceiling.</p>
+      </div>
+    </div>
+    <div class="card reveal delay-2">
+      <div class="img-wrap"><img src="assets/figures/fig2_embedding_umap.png" alt="Embedding UMAP" loading="lazy"/></div>
+      <div class="meta">
+        <h4>Semantic alignment</h4>
+        <p>UMAP of <i>q₀</i> code embeddings: clusters emerge by <b>verb/intent</b>, not by joint trajectory similarity.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ================== NOISE ROBUSTNESS ================== -->
+<section class="block" id="robustness">
+  <div class="reveal">
+    <div class="eyebrow">Robustness · code stability under noise</div>
+    <h2>Same intent, <span class="accent">same codes.</span></h2>
+    <div class="lede">
+      Inject Gaussian noise into the action chunk before re-tokenizing. The top-level <i>q₀</i> codes barely move — residuals <i>q₁₋₃</i> absorb the perturbation. This is what makes the semantic interface stable across embodiments and demonstration noise.
+    </div>
+  </div>
+
+  <div class="noise-card reveal delay-1" id="noiseCard">
+    <div class="svg-wrap">
+      <svg class="noise-svg" id="noiseSvg" viewBox="0 0 1280 620" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <marker id="enc-arrhead-page" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill="#7c3aed"/>
+          </marker>
+        </defs>
+
+        <text class="h-eyebrow" x="60" y="40">ROBUSTNESS · CODE STABILITY UNDER NOISE</text>
+        <text class="h-title"   x="60" y="70">A 24-frame action chunk is perturbed, then re-tokenized.</text>
+        <text class="h-sub"     x="60" y="94">As σ rises, only a few <tspan font-style="italic">q₀</tspan> cells flip — circled in red. The rest of the intent stays the same.</text>
+
+        <g id="sigmaPill" class="sigma-pill" transform="translate(1138, 64)">
+          <rect class="bg" x="-92" y="-30" width="184" height="58" rx="29"/>
+          <text class="label" x="0" y="-8">σ&nbsp;noise</text>
+          <text class="val" id="sigmaValue" x="0" y="18">0.000</text>
+        </g>
+
+        <g transform="translate(60, 130)">
+          <text class="wave-label" x="0" y="-8">Action Chunk · 24 frames · 6 sub-chunks of 4 tokens</text>
+          <rect class="wave-box" x="0" y="0" width="1160" height="130" rx="10"/>
+          <line class="baseline" x1="6" y1="65" x2="1154" y2="65"/>
+          <g class="chunk-dividers">
+            <line class="chunk-divider" x1="197.3" y1="6" x2="197.3" y2="124"/>
+            <line class="chunk-divider" x1="388.7" y1="6" x2="388.7" y2="124"/>
+            <line class="chunk-divider" x1="580.0" y1="6" x2="580.0" y2="124"/>
+            <line class="chunk-divider" x1="771.3" y1="6" x2="771.3" y2="124"/>
+            <line class="chunk-divider" x1="962.7" y1="6" x2="962.7" y2="124"/>
+          </g>
+          <path id="waveClean" class="wave-clean" d=""/>
+          <path id="waveNoise" class="wave-noisy" d="" style="opacity:0"/>
+        </g>
+
+        <g id="encPill" class="enc-pill" transform="translate(640, 290)" style="opacity:0">
+          <path class="arrow" d="M0 -24 L0 -10"/>
+          <rect class="bg" x="-86" y="-10" width="172" height="26" rx="13"/>
+          <text class="txt" x="0" y="3">X-Tokenizer · q₀ codes</text>
+          <path class="arrow" d="M0 16 L0 30" marker-end="url(#enc-arrhead-page)"/>
+        </g>
+
+        <g id="tokenRows" transform="translate(0, 340)"></g>
+
+        <g id="noiseCallout" transform="translate(60, 562)" style="opacity:0">
+          <rect class="callout-bg" x="0" y="0" width="1160" height="48" rx="10"/>
+          <text class="callout-text" x="22" y="24">
+            At σ = 0.006, only <tspan class="big">1 / 6</tspan> of top-level q₀ tokens flip — residual layers q<tspan dy="4" font-size="12">1−3</tspan><tspan dy="-4"> absorb the perturbation.</tspan>
+          </text>
+        </g>
+      </svg>
+    </div>
+    <div class="below">
+      <span><b>Animation:</b> auto-plays the first time this card scrolls into view. Each row corresponds to a different noise level σ.</span>
+      <button class="restart" id="noiseRestart">↻ Replay</button>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ================== QUANTITATIVE RESULTS ================== -->
+<section class="block" id="results">
+  <div class="reveal">
+    <div class="eyebrow">Quantitative results · 3 benchmarks</div>
+    <h2>One tokenizer, <span class="accent">three regimes.</span></h2>
+    <div class="lede">
+      RoboTwin 2.0 dual-arm (50 tasks · Easy/Medium/Hard), 5-arm cross-embodiment joint training, and real-world tabletop manipulation across 7 tasks. Numbers below are <em>success rates</em>; all VLAs share the same backbone — only the action tokenizer differs.
+    </div>
+  </div>
+
+  <div class="results-grid">
+    <div class="rcard dualarm reveal">
+      <div class="head">
+        <div>
+          <div class="title">RoboTwin 2.0 · <b>dual-arm</b></div>
+          <div class="sub">50 tasks · Easy / Medium / Hard</div>
+        </div>
+        <span class="stat">Hard drop −3.8</span>
+      </div>
+      <div class="frame">      <div class="chart-panel" data-chart="dualarm">
+        <div class="chart-legend"><span class="legend-item"><span class="swatch pi0"></span><span class="name">&pi;<sub>0</sub></span></span>
+        <span class="legend-item"><span class="swatch pi05"></span><span class="name">&pi;<sub>0.5</sub></span></span>
+        <span class="legend-item"><span class="swatch xvla"></span><span class="name">X-VLA</span></span>
+        <span class="legend-item"><span class="swatch ours"></span><span class="name">Wall-OSS&nbsp;+&nbsp;X-Tokenizer</span><span class="ours-tag">(ours)</span></span></div>
+        <div id="chart-dualarm" class="chart-canvas"></div>
+      </div></div>
+    </div>
+
+    <div class="rcard cross reveal delay-1">
+      <div class="head">
+        <div>
+          <div class="title">Cross-embodiment · <b>5-arm joint training</b></div>
+          <div class="sub">Family-matrix transfer · Easy / Medium / Hard</div>
+        </div>
+        <span class="stat">Hard +10.4</span>
+      </div>
+      <div class="frame">      <div class="chart-panel" data-chart="crossembod">
+        <div class="chart-legend"><span class="legend-item"><span class="swatch single"></span><span class="name">Single-embodiment</span></span>
+        <span class="legend-item"><span class="swatch joint"></span><span class="name">Joint&nbsp;(5-embodiment)</span></span></div>
+        <div id="chart-crossembod" class="chart-canvas"></div>
+      </div></div>
+    </div>
+
+    <div class="rcard real wide reveal delay-2">
+      <div class="head">
+        <div>
+          <div class="title">Real-world · <b>7 tabletop tasks + VQA</b></div>
+          <div class="sub">Single frozen X-Tokenizer · no per-task tuning</div>
+        </div>
+        <span class="stat">Avg 77.4 · 8 / 9 ⭐</span>
+      </div>
+      <div class="frame">      <div class="chart-panel" data-chart="realworld">
+        <div class="chart-legend"><span class="legend-item"><span class="swatch base"></span><span class="name">Wall-OSS</span></span>
+        <span class="legend-item"><span class="swatch fast"></span><span class="name">+&nbsp;FAST</span></span>
+        <span class="legend-item"><span class="swatch rvq"></span><span class="name">+&nbsp;RVQ&nbsp;(no-aux)</span></span>
+        <span class="legend-item"><span class="swatch ours"></span><span class="name">+&nbsp;X-Tokenizer</span><span class="ours-tag">(ours)</span></span></div>
+        <div id="chart-realworld" class="chart-canvas"></div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ================== VIDEOS ================== -->
+<section class="block" id="videos">
+  <div class="reveal">
+    <div class="eyebrow">Real-world · tabletop rollouts</div>
+    <h2>One model. <span class="accent">Seven tasks.</span> No per-task tuning.</h2>
+    <div class="lede">
+      All clips below are autonomous policy rollouts on the same physical platform. The policy uses a single, frozen X-Tokenizer.
+    </div>
+  </div>
+
+  <div class="demo-stage reveal delay-1">
+    <button type="button" class="demo-scroll prev" id="demoScrollPrev" aria-label="Scroll demos left">‹</button>
+    <button type="button" class="demo-scroll next" id="demoScrollNext" aria-label="Scroll demos right">›</button>
+    <div class="demo-rows">
+      <div class="demo-row" id="videoRow"></div>
+    </div>
+  </div>
+
+  <div class="video-note">
+    Use ‹ › to scroll · all distinct rollouts · native aspect ratio, no crop.
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ================== BIBTEX ================== -->
+<section class="block" id="bibtex">
+  <div class="reveal">
+    <div class="eyebrow">Citation</div>
+    <h2>BibTeX</h2>
+  </div>
+  <div class="reveal delay-1">
+    <pre class="bibtex" id="bibtexBlock"><button class="copy-btn" id="copyBib">Copy</button><span class="k">@article</span>{<span class="v">xtokenizer2026</span>,
+  <span class="k">title</span>  = {<span class="v">X-Tokenizer: A Multimodal Action Tokenizer for Vision-Language-Action Pretraining</span>},
+  <span class="k">author</span> = {<span class="v">Kang, Xirui and Shi, Yanpei and Liang, Lucy and Gan, Roy and Liu, Dongxiu and Zhang, Pushi and Chen, Danpeng and Qin, Xiaoyi and Zheng, Yinan and Zheng, Jinliang and Wang, Hao and Zhan, Xianyuan and Su, Hang</span>},
+  <span class="k">year</span>   = {<span class="v">2026</span>},
+}</pre>
+  </div>
+</section>
+
+<!-- ================== FOOTER ================== -->
+<footer>
+  <div class="brandline"><span class="dot"></span>X-Tokenizer</div>
+  <div class="ftxt">
+    A reusable <b>semantic interface</b> for VLA pretraining.<br>
+    <span style="display:inline-block;margin-top:10px">X Square Robot · City University of Hong Kong · Tsinghua University</span>
+  </div>
+</footer>
+
+<script>
+/* ---------- Reveal-on-scroll ---------- */
+const revealEls = document.querySelectorAll('.reveal');
+const revealIO = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('in');
+      revealIO.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12 });
+revealEls.forEach(el => revealIO.observe(el));
+
+/* ---------- Animated stat counters ---------- */
+const COUNTERS = [
+  { id:'stat-traj',   end: 2.4, decimals:1, duration:1400 },
+  { id:'stat-frames', end: 2.0, decimals:1, duration:1400 },
+  { id:'stat-arms',   end: 17,  decimals:0, duration:1400 },
+];
+function animateCounter(c){
+  const el = document.getElementById(c.id);
+  if (!el) return;
+  const start = performance.now();
+  function tick(t){
+    const p = Math.min(1, (t - start) / c.duration);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const v = c.end * eased;
+    el.textContent = c.decimals ? v.toFixed(c.decimals) : Math.round(v);
+    if (p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+const statStrip = document.querySelector('.stat-strip');
+if (statStrip){
+  const statIO = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting){
+        COUNTERS.forEach(animateCounter);
+        statIO.disconnect();
+      }
+    });
+  }, { threshold: 0.3 });
+  statIO.observe(statStrip);
+}
+
+/* ---------- Copy BibTeX ---------- */
+const copyBtn = document.getElementById('copyBib');
+if (copyBtn){
+  copyBtn.addEventListener('click', () => {
+    const txt = document.getElementById('bibtexBlock').innerText.replace(/^Copy\s*/, '');
+    navigator.clipboard?.writeText(txt).then(() => {
+      copyBtn.textContent = 'Copied';
+      setTimeout(() => copyBtn.textContent = 'Copy', 1400);
+    });
+  });
+}
+
+/* =========================================================================
+   Noise scene — custom SVG animation
+   Adapted from record_storyboard.html; plays once when scrolled into view.
+   ========================================================================= */
+const NOISE_ROWS = [
+  { label: 'Clean',     sigma: 0.000, ids: ['1868','100','1092','203', '1868','343','1092','203', '1215','849','351','1044', '946','539','1824','1773', '946','1084','61','1474', '946','1084','1402','203'] },
+  { label: 'σ = 0.002', sigma: 0.002, ids: ['1868','100','1092','203', '1868','343','1092','203', '1215','849','1824','321', '946','539','1824','150',  '946','1084','61','1474', '946','1084','1402','203'] },
+  { label: 'σ = 0.004', sigma: 0.004, ids: ['1868','100','1092','203', '1868','343','1092','203', '1215','849','351','1044', '946','539','1824','1773', '946','1084','61','1736', '946','1084','1402','203'] },
+  { label: 'σ = 0.006', sigma: 0.006, ids: ['1868','100','1092','203', '1868','343','1092','203', '946','1235','834','67',   '946','539','954','728',   '946','1084','61','1474', '946','1084','1402','203'] },
+];
+const NOISE_ID_COLOR = {
+  '1868':'#6b4f7c','203':'#a890c5','351':'#b29ec7','1044':'#a48bc8','954':'#8d77c0',
+  '100':'#ead8d8','1092':'#dec9b5','343':'#ccab9b','1215':'#d3b89b','849':'#dccdaf','150':'#dcc9b1',
+  '946':'#c5d3e0','539':'#9eb6d3','61':'#a8bcd0','1474':'#a98782',
+  '1773':'#a9847f','1084':'#ccaab2','1402':'#cba0aa','1736':'#a9847f',
+  '1824':'#c19a93','321':'#9a6066','1235':'#b9888b','834':'#bd9c93','67':'#dcd1bc',
+  '728':'#d3b3b3'
+};
+const noiseColorFor = (id) => NOISE_ID_COLOR[id] || '#cbd5e1';
+
+function noiseRng(seed){
+  let s = seed | 0;
+  return () => { s = (s * 1664525 + 1013904223) | 0; return ((s >>> 0) % 1e6) / 1e6 - 0.5; };
+}
+
+function genWavePath(sigma, seed){
+  const W = 1148, baseY = 65, N = 120;
+  const rnd = noiseRng(seed);
+  const amp = sigma * 2000;
+  let d = '';
+  for (let i = 0; i < N; i++){
+    const x = 6 + i * (W / (N - 1));
+    const t = i / (N - 1);
+    const base = Math.sin(t * Math.PI * 5) * 30 + Math.sin(t * Math.PI * 1.3) * 9;
+    const g = (rnd() + rnd() + rnd()) * (1/1.5);
+    const y = baseY + base + g * amp;
+    d += (i === 0 ? 'M' : ' L') + x.toFixed(1) + ',' + y.toFixed(1);
+  }
+  return d;
+}
+
+let noiseBuilt = false;
+function buildNoiseRows(){
+  if (noiseBuilt) return;
+  const NS = 'http://www.w3.org/2000/svg';
+  const root = document.getElementById('tokenRows');
+  if (!root) return;
+  while (root.firstChild) root.removeChild(root.firstChild);
+
+  const cellW = 36, cellH = 30, cellGap = 1, chunkGap = 16;
+  const chunkW = 4 * cellW + 3 * cellGap;
+  const gridX0 = 158;
+  const rowH = 46;
+  const cellX = (i) => {
+    const cIdx = Math.floor(i / 4), inCk = i % 4;
+    return gridX0 + cIdx * (chunkW + chunkGap) + inCk * (cellW + cellGap);
+  };
+
+  NOISE_ROWS.forEach((row, ri) => {
+    const y = ri * rowH;
+    const lbl = document.createElementNS(NS, 'text');
+    lbl.setAttribute('class', 'row-label');
+    lbl.setAttribute('x', gridX0 - 18);
+    lbl.setAttribute('y', y + cellH/2);
+    lbl.dataset.row = ri;
+    lbl.textContent = row.label;
+    lbl.style.opacity = '0';
+    root.appendChild(lbl);
+
+    for (let i = 0; i < 24; i++){
+      const x = cellX(i);
+      const color = noiseColorFor(row.ids[i]);
+      const isDiff = ri > 0 && row.ids[i] !== NOISE_ROWS[0].ids[i];
+
+      const g = document.createElementNS(NS, 'g');
+      g.setAttribute('class', 'tok-cell');
+      g.setAttribute('transform', `translate(${x}, ${y})`);
+      g.dataset.row = ri;
+      g.dataset.idx = i;
+      g.dataset.diff = isDiff ? '1' : '0';
+      g.style.opacity = '0';
+
+      const r = document.createElementNS(NS, 'rect');
+      r.setAttribute('class', 'cell-rect');
+      r.setAttribute('x', 0); r.setAttribute('y', 0);
+      r.setAttribute('width', cellW); r.setAttribute('height', cellH);
+      r.setAttribute('rx', 3);
+      r.setAttribute('fill', color);
+      g.appendChild(r);
+
+      const t = document.createElementNS(NS, 'text');
+      t.setAttribute('class', 'cell-text');
+      t.setAttribute('x', cellW/2); t.setAttribute('y', cellH/2);
+      t.textContent = row.ids[i];
+      g.appendChild(t);
+
+      if (isDiff){
+        const e = document.createElementNS(NS, 'ellipse');
+        e.setAttribute('class', 'diff-circle');
+        e.setAttribute('cx', cellW/2); e.setAttribute('cy', cellH/2);
+        e.setAttribute('rx', cellW/2 + 4); e.setAttribute('ry', cellH/2 + 5);
+        e.setAttribute('stroke-dasharray', '140');
+        e.setAttribute('stroke-dashoffset', '140');
+        e.style.opacity = '0';
+        g.appendChild(e);
+      }
+      root.appendChild(g);
+    }
+  });
+  noiseBuilt = true;
+}
+
+function setNoiseSigmaPill(v){
+  const el = document.getElementById('sigmaValue');
+  const wrap = document.getElementById('sigmaPill');
+  if (!el || !wrap) return;
+  el.textContent = v.toFixed(3);
+  if (v > 0) wrap.classList.add('hot'); else wrap.classList.remove('hot');
+}
+function setNoiseWave(sigma, seed){
+  const wn = document.getElementById('waveNoise');
+  if (!wn) return;
+  wn.setAttribute('d', genWavePath(sigma, seed));
+  wn.style.opacity = '0.95';
+}
+function fadeInEncPill(){
+  const ep = document.getElementById('encPill');
+  if (ep) ep.style.opacity = '1';
+}
+function showNoiseCallout(){
+  const el = document.getElementById('noiseCallout');
+  if (el) el.style.opacity = '1';
+}
+function revealNoiseRow(ri){
+  const lbl = document.querySelector(`#tokenRows text.row-label[data-row="${ri}"]`);
+  if (lbl) lbl.style.opacity = '1';
+  const cells = document.querySelectorAll(`#tokenRows g.tok-cell[data-row="${ri}"]`);
+  cells.forEach((c, i) => setTimeout(() => { c.style.opacity = '1'; }, i * 45));
+}
+function circleNoiseDiffs(ri){
+  const diffs = document.querySelectorAll(`#tokenRows g.tok-cell[data-row="${ri}"][data-diff="1"] .diff-circle`);
+  diffs.forEach((e, i) => setTimeout(() => {
+    e.style.opacity = '1';
+    e.setAttribute('stroke-dashoffset', '0');
+  }, i * 110));
+}
+function resetNoiseScene(){
+  document.querySelectorAll('#tokenRows .tok-cell, #tokenRows .row-label').forEach(el => el.style.opacity = '0');
+  document.querySelectorAll('#tokenRows .diff-circle').forEach(el => { el.style.opacity = '0'; el.setAttribute('stroke-dashoffset','140'); });
+  const wn = document.getElementById('waveNoise'); if (wn) wn.style.opacity = '0';
+  const cb = document.getElementById('noiseCallout'); if (cb) cb.style.opacity = '0';
+  const ep = document.getElementById('encPill'); if (ep) ep.style.opacity = '0';
+  setNoiseSigmaPill(0);
+  const wc = document.getElementById('waveClean');
+  if (wc) wc.setAttribute('d', genWavePath(0, 7));
+}
+
+let noiseTimers = [];
+function clearNoiseTimers(){ noiseTimers.forEach(id => clearTimeout(id)); noiseTimers = []; }
+
+function playNoiseAnimation(){
+  buildNoiseRows();
+  resetNoiseScene();
+  clearNoiseTimers();
+
+  const sched = (ms, fn) => { noiseTimers.push(setTimeout(fn, ms)); };
+  sched(   0, () => { setNoiseSigmaPill(0); });
+  sched( 600, () => revealNoiseRow(0));
+  sched(2300, () => fadeInEncPill());
+  sched(3000, () => { setNoiseSigmaPill(0.002); setNoiseWave(0.002, 11); });
+  sched(3600, () => revealNoiseRow(1));
+  sched(5400, () => circleNoiseDiffs(1));
+  sched(6400, () => { setNoiseSigmaPill(0.004); setNoiseWave(0.004, 23); });
+  sched(7000, () => revealNoiseRow(2));
+  sched(8800, () => circleNoiseDiffs(2));
+  sched(9600, () => { setNoiseSigmaPill(0.006); setNoiseWave(0.006, 41); });
+  sched(10200, () => revealNoiseRow(3));
+  sched(12200, () => circleNoiseDiffs(3));
+  sched(13200, () => showNoiseCallout());
+}
+
+const noiseCard = document.getElementById('noiseCard');
+if (noiseCard){
+  const noiseIO = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting){
+        playNoiseAnimation();
+        noiseIO.disconnect();
+      }
+    });
+  }, { threshold: 0.25 });
+  noiseIO.observe(noiseCard);
+}
+document.getElementById('noiseRestart')?.addEventListener('click', playNoiseAnimation);
+
+
+function initChart_chart_dualarm() {
+  const FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif';
+
+  const INK   = '#2C2A35';
+  const MUTED = '#807A8A';
+  const RULE  = '#E5E1EB';
+
+  const C_PI0  = '#C9C3D4';
+  const C_PI05 = '#E8A8B8';
+  const C_XVLA = '#7AA8DD';
+  const C_OURS = '#5A92CC';
+
+  // 4-stop "glass bubble" gradient – same helpers as the per-task figure.
+  const _hex = (h) => h.replace('#','').match(/.{2}/g).map((x) => parseInt(x,16));
+  const _mix = (a, b, t) => {
+    const [r1,g1,b1] = _hex(a), [r2,g2,b2] = _hex(b);
+    const r = Math.round(r1 + (r2-r1)*t);
+    const g = Math.round(g1 + (g2-g1)*t);
+    const bb= Math.round(b1 + (b2-b1)*t);
+    return `rgb(${r},${g},${bb})`;
+  };
+  const lighten = (c, t) => _mix(c, '#FFFFFF', t);
+  const darken  = (c, t) => _mix(c, '#0E0B1A', t);
+  const gloss = (base) => ({
+    type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+    colorStops: [
+      { offset: 0.00, color: lighten(base, 0.62) },
+      { offset: 0.14, color: lighten(base, 0.30) },
+      { offset: 0.55, color: base               },
+      { offset: 1.00, color: darken(base, 0.22) },
+    ],
+  });
+
+  // Three difficulty columns. Title Case to match paper convention.
+  const TASKS = ['Easy', 'Hard', 'Avg'];
+  // Order:    [pi0,    pi0.5,  X-VLA,  Wall-OSS+X-Tok (ours)]
+  const DATA = {
+    pi0:  [65.9, 58.4, 62.15],
+    pi05: [82.7, 76.8, 79.75],
+    xvla: [72.9, 72.8, 72.85],
+    ours: [84.7, 80.9, 82.80],
+  };
+
+  // Per-column max (across the 4 methods); ties would also be marked.
+  // In this table ours wins all three columns outright.
+  const MAX_PER_TASK = TASKS.map((_, i) => Math.max(
+    DATA.pi0[i], DATA.pi05[i], DATA.xvla[i], DATA.ours[i]
+  ));
+
+  const fmtNum = (v) =>
+    (v == null ? '' : Number.isInteger(v) ? String(v) : Number(v).toFixed(1));
+
+  const valueLabel = (isMax) => ({
+    show: true,
+    position: 'top',
+    distance: 4,
+    color: isMax ? INK : MUTED,
+    fontFamily: FONT,
+    fontSize: isMax ? 13 : 11,
+    fontWeight: isMax ? 800 : 700,
+    formatter: (p) => fmtNum(p.value),
+  });
+
+  function barSeries(name, values, color) {
+    return {
+      name,
+      type: 'bar',
+      data: values.map((v, i) => {
+        const isMax = v === MAX_PER_TASK[i];
+        return {
+          value: v,
+          itemStyle: {
+            color: gloss(color),
+            borderColor: isMax ? darken(color, 0.30) : 'transparent',
+            borderWidth: isMax ? 1 : 0,
+            borderRadius: [5, 5, 1, 1],
+            shadowColor: isMax ? 'rgba(40, 32, 60, 0.32)'
+                               : 'rgba(40, 32, 60, 0.18)',
+            shadowBlur:  isMax ? 8 : 5,
+            shadowOffsetY: isMax ? 3 : 2,
+          },
+          label: valueLabel(isMax),
+        };
+      }),
+      barGap: '15%',
+      barCategoryGap: '38%',
+      emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetY: 3 } },
+      z: 4,
+    };
+  }
+
+  const chart = echarts.init(document.getElementById('chart-dualarm'), null, { renderer: 'svg' });
+  chart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(15,23,42,0.04)' } },
+      backgroundColor: 'rgba(255,255,255,0.97)',
+      borderColor: RULE, borderWidth: 1,
+      padding: [7, 11],
+      textStyle: { color: INK, fontSize: 12, fontFamily: FONT },
+      extraCssText: 'border-radius: 10px; box-shadow: 0 6px 20px rgba(15,23,42,.08);',
+      valueFormatter: (v) => (v == null ? '—' : fmtNum(v)),
+    },
+    grid: {
+      left: 6, right: 14, top: 34, bottom: 38,
+      containLabel: true,
+    },
+    xAxis: {
+      type: 'category',
+      data: TASKS,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        color: INK, fontFamily: FONT,
+        fontSize: 15, fontWeight: 700,
+        interval: 0, margin: 12,
+        lineHeight: 17,
+        formatter: (value) => (value === 'Avg' ? `{avg|Avg}` : value),
+        rich: {
+          avg: { color: C_OURS, fontFamily: FONT,
+                 fontSize: 16, fontWeight: 800, lineHeight: 17 },
+        },
+      },
+    },
+    yAxis: {
+      type: 'value',
+      min: 0, max: 100, interval: 25,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: {
+        lineStyle: { color: '#ECE8F0', width: 1, type: 'solid' },
+      },
+      axisLabel: {
+        color: MUTED, fontFamily: FONT,
+        fontSize: 13, fontWeight: 700, margin: 6,
+        formatter: (v) => String(v),
+      },
+    },
+    series: [
+      barSeries('pi_0',       DATA.pi0,  C_PI0),
+      barSeries('pi_0.5',     DATA.pi05, C_PI05),
+      barSeries('X-VLA',      DATA.xvla, C_XVLA),
+      barSeries('Wall-OSS+X-Tokenizer', DATA.ours, C_OURS),
+    ],
+    animationDuration: 700,
+    animationEasing: 'cubicOut',
+  });
+
+  window.addEventListener('resize', () => chart.resize());
+}
+
+
+function initChart_chart_crossembod() {
+  const FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif';
+
+  const INK   = '#2C2A35';
+  const MUTED = '#807A8A';
+  const RULE  = '#E5E1EB';
+
+  const C_SINGLE = '#C9C3D4';
+  const C_JOINT  = '#5A92CC';
+
+  // 4-stop "glass bubble" gradient – same helpers as the per-task figure.
+  const _hex = (h) => h.replace('#','').match(/.{2}/g).map((x) => parseInt(x,16));
+  const _mix = (a, b, t) => {
+    const [r1,g1,b1] = _hex(a), [r2,g2,b2] = _hex(b);
+    const r = Math.round(r1 + (r2-r1)*t);
+    const g = Math.round(g1 + (g2-g1)*t);
+    const bb= Math.round(b1 + (b2-b1)*t);
+    return `rgb(${r},${g},${bb})`;
+  };
+  const lighten = (c, t) => _mix(c, '#FFFFFF', t);
+  const darken  = (c, t) => _mix(c, '#0E0B1A', t);
+  const gloss = (base) => ({
+    type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+    colorStops: [
+      { offset: 0.00, color: lighten(base, 0.62) },
+      { offset: 0.14, color: lighten(base, 0.30) },
+      { offset: 0.55, color: base               },
+      { offset: 1.00, color: darken(base, 0.22) },
+    ],
+  });
+
+  // 3 difficulty columns; Joint > Single in every column so Joint always wins.
+  const TASKS = ['Easy', 'Hard', 'Avg'];
+  const SINGLE = [70.9, 64.0, 67.45];
+  const JOINT  = [77.9, 74.4, 76.15];
+
+  const fmtNum = (v) =>
+    (v == null ? '' : Number.isInteger(v) ? String(v) : Number(v).toFixed(1));
+
+  const singleLabel = {
+    show: true,
+    position: 'top',
+    distance: 4,
+    color: MUTED,
+    fontFamily: FONT,
+    fontSize: 12,
+    fontWeight: 700,
+    formatter: (p) => fmtNum(p.value),
+  };
+  const jointLabel = {
+    show: true,
+    position: 'top',
+    distance: 4,
+    color: INK,
+    fontFamily: FONT,
+    fontSize: 13,
+    fontWeight: 800,
+    formatter: (p) => fmtNum(p.value),
+  };
+
+  function barSeries(name, values, color, label, isJoint) {
+    return {
+      name,
+      type: 'bar',
+      data: values.map((v) => ({
+        value: v,
+        itemStyle: {
+          color: gloss(color),
+          borderColor: isJoint ? darken(color, 0.30) : 'transparent',
+          borderWidth: isJoint ? 1 : 0,
+          borderRadius: [5, 5, 1, 1],
+          shadowColor: isJoint ? 'rgba(40, 32, 60, 0.32)'
+                               : 'rgba(40, 32, 60, 0.18)',
+          shadowBlur:  isJoint ? 8 : 5,
+          shadowOffsetY: isJoint ? 3 : 2,
+        },
+        label,
+      })),
+      barGap: '22%',
+      barCategoryGap: '50%',
+      emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetY: 3 } },
+      z: 4,
+    };
+  }
+
+  const chart = echarts.init(document.getElementById('chart-crossembod'), null, { renderer: 'svg' });
+  chart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(15,23,42,0.04)' } },
+      backgroundColor: 'rgba(255,255,255,0.97)',
+      borderColor: RULE, borderWidth: 1,
+      padding: [7, 11],
+      textStyle: { color: INK, fontSize: 12, fontFamily: FONT },
+      extraCssText: 'border-radius: 10px; box-shadow: 0 6px 20px rgba(15,23,42,.08);',
+      valueFormatter: (v) => (v == null ? '—' : fmtNum(v)),
+    },
+    grid: {
+      left: 6, right: 14, top: 34, bottom: 38,
+      containLabel: true,
+    },
+    xAxis: {
+      type: 'category',
+      data: TASKS,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        color: INK, fontFamily: FONT,
+        fontSize: 15, fontWeight: 700,
+        interval: 0, margin: 12,
+        lineHeight: 17,
+        formatter: (value) => (value === 'Avg' ? `{avg|Avg}` : value),
+        rich: {
+          avg: { color: C_JOINT, fontFamily: FONT,
+                 fontSize: 16, fontWeight: 800, lineHeight: 17 },
+        },
+      },
+    },
+    yAxis: {
+      type: 'value',
+      min: 0, max: 100, interval: 25,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: {
+        lineStyle: { color: '#ECE8F0', width: 1, type: 'solid' },
+      },
+      axisLabel: {
+        color: MUTED, fontFamily: FONT,
+        fontSize: 13, fontWeight: 700, margin: 6,
+        formatter: (v) => String(v),
+      },
+    },
+    series: [
+      barSeries('Single-embodiment',  SINGLE, C_SINGLE, singleLabel, false),
+      barSeries('Joint (5-embodiment)', JOINT, C_JOINT,  jointLabel,  true),
+    ],
+    animationDuration: 700,
+    animationEasing: 'cubicOut',
+  });
+
+  window.addEventListener('resize', () => chart.resize());
+}
+
+
+function initChart_chart_realworld() {
+  const FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif';
+
+  const INK   = '#2C2A35';
+  const MUTED = '#807A8A';
+  const RULE  = '#E5E1EB';
+
+  const C_BASE = '#C9C3D4';
+  const C_FAST = '#E8A8B8';
+  const C_RVQ  = '#7AA8DD';
+  const C_OURS = '#5A92CC';
+
+  // 4-stop "glass bubble" gradient: top specular -> highlight roll-off ->
+  // brand colour -> dark grounded base.
+  const _hex = (h) => h.replace('#','').match(/.{2}/g).map((x) => parseInt(x,16));
+  const _mix = (a, b, t) => {
+    const [r1,g1,b1] = _hex(a), [r2,g2,b2] = _hex(b);
+    const r = Math.round(r1 + (r2-r1)*t);
+    const g = Math.round(g1 + (g2-g1)*t);
+    const bb= Math.round(b1 + (b2-b1)*t);
+    return `rgb(${r},${g},${bb})`;
+  };
+  const lighten = (c, t) => _mix(c, '#FFFFFF', t);
+  const darken  = (c, t) => _mix(c, '#0E0B1A', t);
+  const gloss = (base) => ({
+    type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+    colorStops: [
+      { offset: 0.00, color: lighten(base, 0.62) },
+      { offset: 0.14, color: lighten(base, 0.30) },
+      { offset: 0.55, color: base               },
+      { offset: 1.00, color: darken(base, 0.22) },
+    ],
+  });
+
+  // Two-line task labels so they sit horizontally without rotation.
+  // Title Case to match how paper figures usually render task names.
+  const TASKS = [
+    'Pick Up\nCup',
+    'Push\nTowel',
+    'Distribute\nBlocks',
+    'Stack\nBottle',
+    'Place\nTape',
+    'Arrange\nFlowers',
+    'Turn On\nLight Switch',
+    'VQA',
+    'Avg',
+  ];
+  // Numbers come straight from the LaTeX table in §Real-World Evaluation.
+  // Order: 7 tabletop tasks → VQA → Avg.
+  const DATA = {
+    base: [46,  70,  39, 60, 60,  38.5, 35, 50.4, 49.8],
+    fast: [61,  90,  58, 80, 100, 57,   65, 75.7, 73.0],
+    rvq:  [58,  90,  47, 80, 90,  51,   68, 79.4, 69.1],
+    ours: [73,  100, 50, 80, 100, 68.5, 70, 85.9, 77.4],
+  };
+
+  // Per-task max (across the 4 variants) – used to flag the winning bar(s);
+  // ties get marked too (mirrors how \textbf{} is applied in the LaTeX table).
+  const MAX_PER_TASK = TASKS.map((_, i) => Math.max(
+    DATA.base[i], DATA.fast[i], DATA.rvq[i], DATA.ours[i]
+  ));
+
+  const fmtNum = (v) =>
+    (v == null ? '' : Number.isInteger(v) ? String(v) : Number(v).toFixed(1));
+
+  const inlineLabel = (color) => ({
+    show: true,
+    position: 'insideTop',
+    distance: 5,
+    rotate: 90,
+    align: 'right',
+    verticalAlign: 'middle',
+    color: '#FFFFFF',
+    fontFamily: FONT,
+    fontSize: 10,
+    fontWeight: 700,
+    textShadowColor: darken(color, 0.45),
+    textShadowBlur: 2,
+    formatter: (p) => fmtNum(p.value),
+  });
+
+  const winnerTopLabel = {
+    show: true,
+    position: 'top',
+    distance: 4,
+    color: C_OURS,
+    fontFamily: FONT,
+    fontSize: 11,
+    fontWeight: 800,
+    formatter: (p) => fmtNum(p.value),
+  };
+
+  function barSeries(name, values, color) {
+    return {
+      name,
+      type: 'bar',
+      data: values.map((v, i) => {
+        const isMax = v === MAX_PER_TASK[i];
+        return {
+          value: v,
+          itemStyle: {
+            color: gloss(color),
+            // Winners get a slightly thicker rim + stronger shadow so the
+            // bubble itself reads as "the highlighted one", not just labels.
+            borderColor: isMax ? darken(color, 0.30) : 'transparent',
+            borderWidth: isMax ? 1 : 0,
+            borderRadius: [4, 4, 1, 1],
+            shadowColor: isMax ? 'rgba(40, 32, 60, 0.32)'
+                               : 'rgba(40, 32, 60, 0.18)',
+            shadowBlur:  isMax ? 8 : 5,
+            shadowOffsetY: isMax ? 3 : 2,
+          },
+          label: isMax ? winnerTopLabel : inlineLabel(color),
+        };
+      }),
+      barGap: '14%',
+      barCategoryGap: '34%',
+      emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetY: 3 } },
+      z: 4,
+    };
+  }
+
+  const chart = echarts.init(document.getElementById('chart-realworld'), null, { renderer: 'svg' });
+  chart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(15,23,42,0.04)' } },
+      backgroundColor: 'rgba(255,255,255,0.97)',
+      borderColor: RULE, borderWidth: 1,
+      padding: [7, 11],
+      textStyle: { color: INK, fontSize: 12, fontFamily: FONT },
+      extraCssText: 'border-radius: 10px; box-shadow: 0 6px 20px rgba(15,23,42,.08);',
+      valueFormatter: (v) => (v == null ? '—' : fmtNum(v)),
+    },
+    grid: {
+      left: 4, right: 12, top: 30, bottom: 54,
+      containLabel: true,
+    },
+    xAxis: {
+      type: 'category',
+      data: TASKS,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        color: INK, fontFamily: FONT,
+        fontSize: 14, fontWeight: 700,
+        interval: 0, margin: 10,
+        lineHeight: 17,
+        // Accent the summary column ("Avg") in the ours-blue so the
+        // aggregate stands out from the per-task labels.
+        formatter: (value) => (value === 'Avg' ? `{avg|Avg}` : value),
+        rich: {
+          avg: { color: C_OURS, fontFamily: FONT,
+                 fontSize: 15, fontWeight: 800, lineHeight: 17 },
+        },
+      },
+    },
+    yAxis: {
+      type: 'value',
+      min: 0, max: 100, interval: 25,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: {
+        lineStyle: { color: '#ECE8F0', width: 1, type: 'solid' },
+      },
+      axisLabel: {
+        color: MUTED, fontFamily: FONT,
+        fontSize: 13, fontWeight: 700, margin: 6,
+        formatter: (v) => String(v),
+      },
+    },
+    series: [
+      barSeries('Wall-OSS',      DATA.base, C_BASE),
+      barSeries('+ FAST',        DATA.fast, C_FAST),
+      barSeries('+ RVQ (no-aux)',DATA.rvq,  C_RVQ),
+      barSeries('+ X-Tokenizer', DATA.ours, C_OURS),
+    ],
+    animationDuration: 700,
+    animationEasing: 'cubicOut',
+  });
+
+  window.addEventListener('resize', () => chart.resize());
+}
+
+const chartInits = {
+  dualarm: initChart_chart_dualarm,
+  crossembod: initChart_chart_crossembod,
+  realworld: initChart_chart_realworld
+};
+const chartPanels = document.querySelectorAll('.chart-panel[data-chart]');
+const chartIO = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const panel = e.target;
+    const key = panel.dataset.chart;
+    if (panel.dataset.inited) return;
+    panel.dataset.inited = '1';
+    chartInits[key]?.();
+    chartIO.unobserve(panel);
+  });
+}, { threshold: 0.15 });
+chartPanels.forEach(p => chartIO.observe(p));
+window.addEventListener('resize', () => {
+  ['chart-dualarm','chart-crossembod','chart-realworld'].forEach(id => {
+    const el = document.getElementById(id);
+    const inst = el && typeof echarts !== 'undefined' ? echarts.getInstanceByDom(el) : null;
+    if (inst) inst.resize();
+  });
+});
+
+/* ---------- Demo videos · all clips + row scroll arrows ---------- */
+const DEMO_VIDEOS = [
+  { name:'Pick Up Cup',          file:'pick_up_the_cup.mp4',          rate:2, badge:2 },
+  { name:'Pick Up Cup',          file:'pick_up_cup_rollout2.mp4',     rate:2, badge:2 },
+  { name:'Push Towel',           file:'push_towel_rollout1.mp4',      rate:2, badge:2 },
+  { name:'Push Towel',           file:'push_towel_rollout2.mp4',      rate:2, badge:2 },
+  { name:'Distribute Blocks',    file:'distribute_block.mp4',         rate:2, badge:2 },
+  { name:'Distribute Blocks',    file:'distrubute_block_new1.mp4',    rate:2, badge:2 },
+  { name:'Stack Cup',            file:'Stack_cup.mp4',                rate:2, badge:2 },
+  { name:'Stack Cup',            file:'stack_the_bottle.mp4',         rate:2, badge:2 },
+  { name:'Place Tape',           file:'place_tape_rollout1.mp4',      rate:2, badge:2 },
+  { name:'Place Tape',           file:'place_tape_rollout2.mp4',      rate:2, badge:2 },
+  { name:'Arrange Flowers',      file:'insert_flower.mp4',            rate:2, badge:2 },
+  { name:'Arrange Flowers',      file:'insert_flower_rollout3.mp4',   rate:2, badge:2 },
+  { name:'Turn On Light Switch', file:'turn_on_the_light_switch.mp4', rate:2, badge:2 },
+];
+
+function fmtSpeed(x){
+  if (Math.abs(x - Math.round(x)) < 1e-3) return `×${Math.round(x)}`;
+  return `×${x.toFixed(1)}`;
+}
+
+function setVideoRate(v){
+  const r = parseFloat(v.dataset.rate || '1');
+  if (!isNaN(r) && r > 0) v.playbackRate = r;
+}
+
+function buildDemoCard(clip){
+  const card = document.createElement('article');
+  card.className = 'demo-card';
+  card.innerHTML = `
+    <div class="media">
+      <video src="assets/videos/${clip.file}"
+             data-rate="${clip.rate}"
+             autoplay muted loop playsinline preload="metadata"></video>
+    </div>
+    <div class="foot">
+      <span class="name">${clip.name}</span>
+      <span class="speed">${fmtSpeed(clip.badge)}</span>
+    </div>`;
+  return card;
+}
+
+const videoRow = document.getElementById('videoRow');
+if (videoRow){
+  DEMO_VIDEOS.forEach((clip) => {
+    videoRow.appendChild(buildDemoCard(clip));
+  });
+}
+
+const scrollStep = () => Math.min(400, window.innerWidth * 0.55);
+document.getElementById('demoScrollPrev')?.addEventListener('click', () => {
+  videoRow?.scrollBy({ left: -scrollStep(), behavior: 'smooth' });
+});
+document.getElementById('demoScrollNext')?.addEventListener('click', () => {
+  videoRow?.scrollBy({ left: scrollStep(), behavior: 'smooth' });
+});
+
+const vids = document.querySelectorAll('.demo-card video');
+vids.forEach(v => {
+  setVideoRate(v);
+  v.addEventListener('loadedmetadata', () => setVideoRate(v));
+  v.addEventListener('play', () => setVideoRate(v));
+  v.addEventListener('ratechange', () => {
+    const expected = parseFloat(v.dataset.rate || '1');
+    if (Math.abs(v.playbackRate - expected) > 0.01) setVideoRate(v);
+  });
+});
+
+const vidIO = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    const v = e.target;
+    if (e.isIntersecting){
+      setVideoRate(v);
+      v.play?.().catch(()=>{});
+    } else {
+      try { v.pause(); } catch(_){}
+    }
+  });
+}, { threshold: 0.15 });
+vids.forEach(v => vidIO.observe(v));
+
+
+/* ---------- Method animation (embedded) ---------- */
+(function initMethodAnimation(){
+
+/* ============================================================
+   X-Tokenizer Method Animation — 28s loop
+   Stages:
+     0  Title (0.0 - 0.6s) — empty
+     1  Inputs   (0.6 - 4.0s)  reveal video, instructions, action wave
+     2  Encoders (4.0 - 8.0s)  flow into encoders, tokens emerge
+     3  Contrastive (8.0 - 11.0s) dashed line pulse, both sides glow
+     4  SRQ quantization (11.0 - 18.0s) 4 layers fire sequentially
+     5  MAM masking & prediction (18.0 - 22.5s)
+     6  Decoders + reconstruction (22.5 - 27.5s)
+        Hold (27.5 - 28.0s), then loop
+   ============================================================ */
+
+const CAPTIONS = [
+  { t: 0.0, stage: 1, title: '<b>Step 1</b> / 6 · Inputs',
+    caption: 'Real sensors stream in: 3 video views, language instructions, and a chunk of robot actions.' },
+  { t: 2.9, stage: 2, title: '<b>Step 2</b> / 6 · Encode',
+    caption: 'A frozen vision-language Context Encoder and a trainable Action Encoder map raw inputs to tokens.' },
+  { t: 6.3, stage: 3, title: '<b>Step 3</b> / 6 · Contrastive Alignment',
+    caption: 'Action features are pulled toward the VL features via contrastive learning (auxiliary, dropped at deployment).' },
+  { t: 9.0, stage: 4, title: '<b>Step 4</b> / 6 · Semantic Residual Quantization',
+    caption: 'Layer 1 captures coarse motion intent; layers 2–4 are reconstruction residuals that absorb fine detail.' },
+  { t: 15.0, stage: 5, title: '<b>Step 5</b> / 6 · Masked Action Modeling',
+    caption: 'BERT-style masking on layer-1 tokens turns motion intent into a reusable, language-like vocabulary.' },
+  { t: 18.9, stage: 6, title: '<b>Step 6</b> / 6 · Decode',
+    caption: 'A single frozen X-Tokenizer reconstructs the action chunk and predicts the next-frame VL feature.' },
+];
+
+const LOOP_DURATION = 24.0; // seconds — sized to fit the 25 s method scene
+
+/* ---------- DOM ---------- */
+const stageEl = document.getElementById('ma-stage');
+const stageName = document.getElementById('ma-stage-name');
+const stepPill = document.getElementById('ma-step-pill');
+const caption = document.getElementById('ma-caption');
+const bar = document.getElementById('ma-progress-bar');
+const timeEl = document.getElementById('ma-time');
+const btnPlay = document.getElementById('ma-btn-play');
+const btnRestart = document.getElementById('ma-btn-restart');
+const btnRecord = document.getElementById('ma-btn-record');
+
+/* ---------- SRQ grid generation ----------
+   4 layers × 7 cells (5 tokens + ellipsis + token n). */
+const SRQ_LAYERS = 4;
+const SRQ_TOKENS = 7; // indices: 0..4 real, 5 ellipsis, 6 = token n
+const CELL_W = 36, CELL_H = 30, CELL_GAP_X = 12, CELL_GAP_Y = 18;
+// Align so cell centers sit exactly under column headers (640, 688, ...) and
+// inside the SRQ box (x: 560-1008) with symmetric horizontal padding.
+const GRID_X0 = 622, GRID_Y0 = 140;
+
+(function buildSRQ () {
+  const ns = 'http://www.w3.org/2000/svg';
+  const grid = document.getElementById('ma-srq-grid');
+  for (let layer = 0; layer < SRQ_LAYERS; layer++) {
+    for (let token = 0; token < SRQ_TOKENS; token++) {
+      const x = GRID_X0 + token * (CELL_W + CELL_GAP_X);
+      const y = GRID_Y0 + layer * (CELL_H + CELL_GAP_Y);
+
+      if (token === 5) {
+        // ellipsis column: show "..." instead of a cell
+        const t = document.createElementNS(ns, 'text');
+        t.setAttribute('x', x + CELL_W / 2);
+        t.setAttribute('y', y + CELL_H / 2 + 4);
+        t.setAttribute('class', 'srq-code');
+        t.textContent = '···';
+        grid.appendChild(t);
+        continue;
+      }
+
+      const rect = document.createElementNS(ns, 'rect');
+      rect.setAttribute('x', x);
+      rect.setAttribute('y', y);
+      rect.setAttribute('width', CELL_W);
+      rect.setAttribute('height', CELL_H);
+      rect.setAttribute('rx', 4);
+      rect.setAttribute('class', `srq-cell l${layer + 1}`);
+      rect.dataset.layer = layer;
+      rect.dataset.token = token;
+      grid.appendChild(rect);
+
+      const text = document.createElementNS(ns, 'text');
+      text.setAttribute('x', x + CELL_W / 2);
+      text.setAttribute('y', y + CELL_H / 2 + 1);
+      text.setAttribute('class', 'srq-code');
+      // Show q^{token+1}_{layer+1} in math-ish form: q^j_i where i=layer, j=token
+      const sub = (layer + 1);
+      const sup = token === 6 ? 'n' : (token + 1);
+      text.innerHTML = `q<tspan baseline-shift="sub" font-size="7">${sub}</tspan><tspan baseline-shift="super" font-size="7">${sup}</tspan>`;
+      grid.appendChild(text);
+    }
+  }
+})();
+
+/* ---------- Particle system: emit dots along an SVG path ---------- */
+const ns = 'http://www.w3.org/2000/svg';
+const particlesG = document.getElementById('ma-particles');
+
+function emitParticle (path, { color = '#3b66f5', dur = 1100, size = 3, delay = 0 } = {}) {
+  const c = document.createElementNS(ns, 'circle');
+  c.setAttribute('r', size);
+  c.setAttribute('fill', color);
+  c.setAttribute('opacity', 0);
+  particlesG.appendChild(c);
+
+  const total = path.getTotalLength();
+  const start = performance.now() + delay;
+  function step (now) {
+    const elapsed = now - start;
+    if (elapsed < 0) { requestAnimationFrame(step); return; }
+    const t = Math.min(elapsed / dur, 1);
+    const pt = path.getPointAtLength(t * total);
+    c.setAttribute('cx', pt.x);
+    c.setAttribute('cy', pt.y);
+    // fade in/out
+    c.setAttribute('opacity', t < 0.1 ? t / 0.1 : (t > 0.85 ? (1 - t) / 0.15 : 1));
+    if (t < 1) requestAnimationFrame(step);
+    else c.remove();
+  }
+  requestAnimationFrame(step);
+}
+
+/* ---------- Stage triggers ----------
+   These functions are idempotent within a loop: we reset on restart. */
+
+function resetVisuals () {
+  // strip dynamic classes
+  document.querySelectorAll('.srq-cell.fired, .srq-cell.masked, .srq-cell.predicted, .srq-cell.hot-row')
+    .forEach(el => el.classList.remove('fired', 'masked', 'predicted', 'hot-row'));
+  document.querySelectorAll('.token.pulse').forEach(el => el.classList.remove('pulse'));
+  document.querySelectorAll('.wave.drawn, .wave-recon.drawn').forEach(el => el.classList.remove('drawn'));
+  document.getElementById('ma-contrast-line').classList.remove('on');
+  document.getElementById('ma-ctx-tokens').classList.remove('on');
+  document.getElementById('ma-act-tokens').classList.remove('on');
+  // hide MAM prediction text
+  document.getElementById('ma-mam-pred-cell').setAttribute('opacity', 0);
+  document.getElementById('ma-mam-pred-text').setAttribute('opacity', 0);
+  // unhighlight wires
+  document.querySelectorAll('.wire-active').forEach(w => w.classList.remove('wire-active'));
+  // clear any leftover particles
+  particlesG.innerHTML = '';
+}
+
+/* Each stage has an 'enter' callback fired once when entered. */
+const STAGE_ENTER = {
+  1: () => {
+    document.getElementById('ma-wave-input').classList.add('drawn');
+  },
+  2: () => {
+    // Emit particles from inputs to encoders
+    const w1 = document.getElementById('ma-wire-v1');
+    const w2 = document.getElementById('ma-wire-v2');
+    const w3 = document.getElementById('ma-wire-act');
+    [w1, w2].forEach(w => w.classList.add('wire-active'));
+    w3.classList.add('wire-active');
+    for (let k = 0; k < 4; k++) {
+      emitParticle(w1, { color: '#3b66f5', dur: 700, delay: k * 160 });
+      emitParticle(w2, { color: '#3b66f5', dur: 700, delay: 90 + k * 160 });
+      emitParticle(w3, { color: '#059669', dur: 700, delay: k * 160 });
+    }
+    // Tokens fade in after particles arrive at the encoders, then start pulsing
+    setTimeout(() => {
+      document.getElementById('ma-ctx-tokens').classList.add('on');
+      document.getElementById('ma-act-tokens').classList.add('on');
+      document.querySelectorAll('#ma-ctx-tokens .token').forEach(t => t.classList.add('pulse'));
+      document.querySelectorAll('#ma-act-tokens .token').forEach(t => t.classList.add('pulse'));
+    }, 700);
+  },
+  3: () => {
+    document.querySelectorAll('.token.pulse').forEach(t => t.classList.remove('pulse'));
+    document.getElementById('ma-contrast-line').classList.add('on');
+  },
+  4: () => {
+    // 1) Action tokens flow INTO SRQ via the new curved wire
+    const wa = document.getElementById('ma-wire-act-to-srq');
+    wa.classList.add('wire-active');
+    for (let k = 0; k < 5; k++) {
+      emitParticle(wa, { color: '#059669', dur: 600, delay: k * 110 });
+    }
+    // 2) After particles arrive, fire SRQ layers sequentially (q1 → q4)
+    setTimeout(() => {
+      const cells = Array.from(document.querySelectorAll('#ma-srq-grid .srq-cell'));
+      const byLayer = [[], [], [], []];
+      cells.forEach(c => byLayer[+c.dataset.layer].push(c));
+      byLayer.forEach((layerCells, i) => {
+        layerCells.forEach((cell, j) => {
+          setTimeout(() => cell.classList.add('fired'), i * 650 + j * 60);
+        });
+      });
+    }, 700);
+  },
+  5: () => {
+    // 1) Highlight layer-1 row (semantic level) to signal "this row feeds MAM"
+    document.querySelectorAll('#ma-srq-grid .srq-cell.l1').forEach(c => c.classList.add('hot-row'));
+    // 2) Activate SRQ→MAM wire and flow particles downward
+    const wm = document.getElementById('ma-wire-srq-to-mam');
+    wm.classList.add('wire-active');
+    for (let k = 0; k < 4; k++) {
+      emitParticle(wm, { color: '#be123c', dur: 450, delay: k * 130, size: 3.5 });
+    }
+    // 3) Fill MAM input cells (they "receive" layer-1 codes)
+    setTimeout(() => {
+      document.querySelectorAll('#ma-mam-input-row .mam-cell').forEach((c, i) => {
+        setTimeout(() => c.classList.add('fired'), i * 70);
+      });
+    }, 500);
+    // 4) Mask one cell — both in SRQ layer-1 AND in MAM input row (token 1)
+    setTimeout(() => {
+      const srqTarget = document.querySelector('#ma-srq-grid .srq-cell.l1[data-token="1"]');
+      const mamTarget = document.querySelector('#ma-mam-input-row .mam-cell[data-i="1"]');
+      if (srqTarget) { srqTarget.classList.remove('fired'); srqTarget.classList.add('masked'); }
+      if (mamTarget) { mamTarget.classList.remove('fired'); mamTarget.classList.add('masked'); }
+    }, 1100);
+    // 5) Show prediction cell + label
+    setTimeout(() => {
+      document.getElementById('ma-mam-pred-cell').setAttribute('opacity', 1);
+      document.getElementById('ma-mam-pred-text').setAttribute('opacity', 1);
+    }, 1900);
+    // 6) Restore both masked cells as "predicted"
+    setTimeout(() => {
+      const srqTarget = document.querySelector('#ma-srq-grid .srq-cell.l1[data-token="1"]');
+      const mamTarget = document.querySelector('#ma-mam-input-row .mam-cell[data-i="1"]');
+      if (srqTarget) { srqTarget.classList.remove('masked'); srqTarget.classList.add('predicted'); }
+      if (mamTarget) { mamTarget.classList.remove('masked'); mamTarget.classList.add('predicted'); }
+    }, 2700);
+  },
+  6: () => {
+    // Both decoders are driven by the SRQ codebook simultaneously
+    const wd1 = document.getElementById('ma-wire-dec1');
+    const wd2 = document.getElementById('ma-wire-dec2');
+    wd1.classList.add('wire-active');
+    wd2.classList.add('wire-active');
+    for (let k = 0; k < 6; k++) {
+      emitParticle(wd1, { color: '#1e40af', dur: 720, delay: k * 140, size: 3.5 });
+      emitParticle(wd2, { color: '#059669', dur: 720, delay: 70 + k * 140, size: 3.5 });
+    }
+    // Reconstructed waveform & future feature blocks animate in
+    setTimeout(() => {
+      document.getElementById('ma-wave-recon').classList.add('drawn');
+      document.querySelectorAll('#ma-fut-blocks .token').forEach((b, i) => {
+        setTimeout(() => b.classList.add('pulse'), i * 120);
+      });
+    }, 500);
+  },
+};
+
+/* ---------- Main loop ---------- */
+let startTs = null;
+let pausedAt = 0;       // accumulated time when paused
+let pauseStart = null;
+let isPlaying = true;
+let currentStage = -1;
+let lastLoopBucket = 0;
+
+function applyCaption (t) {
+  let cur = CAPTIONS[0];
+  for (const c of CAPTIONS) if (t >= c.t) cur = c; else break;
+  if (cur.stage !== currentStage) {
+    currentStage = cur.stage;
+    stageEl.dataset.stage = cur.stage;
+    stageName.innerHTML = cur.title;
+    stepPill.textContent = `STEP ${cur.stage}`;
+    caption.textContent = cur.caption;
+    if (STAGE_ENTER[cur.stage]) STAGE_ENTER[cur.stage]();
+  }
+}
+
+function frame (now) {
+  if (!isPlaying) return;
+  if (startTs == null) startTs = now;
+  const elapsed = (now - startTs - pausedAt) / 1000;
+  const loopT = elapsed % LOOP_DURATION;
+  const bucket = Math.floor(elapsed / LOOP_DURATION);
+
+  if (bucket !== lastLoopBucket) {
+    // new loop
+    lastLoopBucket = bucket;
+    currentStage = -1;
+    resetVisuals();
+  }
+
+  applyCaption(loopT);
+  bar.style.width = (loopT / LOOP_DURATION * 100).toFixed(2) + '%';
+  timeEl.textContent = loopT.toFixed(1) + 's';
+
+  requestAnimationFrame(frame);
+}
+
+requestAnimationFrame(frame);
+
+/* ---------- Controls ---------- */
+btnPlay.addEventListener('click', () => {
+  if (isPlaying) {
+    isPlaying = false;
+    pauseStart = performance.now();
+    btnPlay.textContent = '▶ Play';
+  } else {
+    if (pauseStart != null) pausedAt += performance.now() - pauseStart;
+    pauseStart = null;
+    isPlaying = true;
+    btnPlay.textContent = '⏸ Pause';
+    requestAnimationFrame(frame);
+  }
+});
+
+btnRestart.addEventListener('click', () => {
+  startTs = null;
+  pausedAt = 0;
+  pauseStart = null;
+  lastLoopBucket = 0;
+  currentStage = -1;
+  resetVisuals();
+  if (!isPlaying) {
+    isPlaying = true;
+    btnPlay.textContent = '⏸ Pause';
+  }
+  requestAnimationFrame(frame);
+});
+
+
+})();
+</script>
+</body>
+</html>
